@@ -1,0 +1,13 @@
+{
+  "name": "ledmagico",
+  "private": true,
+  "version": "1.0.0",
+  "description": "LedMagico — sito e-commerce per modellini artigianali illuminati a LED.",
+  "type": "module",
+  "scripts": {
+    "seed": "node scripts/seed-products.mjs"
+  },
+  "devDependencies": {
+    "firebase": "^10.12.2"
+  }
+}

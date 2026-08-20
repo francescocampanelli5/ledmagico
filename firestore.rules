@@ -1,0 +1,37 @@
+rules_version = '2';
+
+// Regole di sicurezza Firestore per LedMagico.
+// Incolla questo contenuto in Firebase Console → Firestore Database → Regole.
+//
+// Logica:
+// - Chiunque può leggere i prodotti attivi (negozio pubblico).
+// - Solo l'amministratore autenticato può creare/modificare/eliminare prodotti.
+// - Chiunque può CREARE un ordine o una richiesta preventivo (checkout pubblico),
+//   ma solo l'amministratore può leggerli, modificarli o eliminarli:
+//   i clienti non possono vedere gli ordini altrui né alterarne lo stato.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /products/{productId} {
+      allow read: if resource.data.active == true || request.auth != null;
+      allow create, update, delete: if request.auth != null;
+    }
+
+    match /orders/{orderId} {
+      allow create: if request.resource.data.customerName is string
+                    && request.resource.data.customerEmail is string
+                    && request.resource.data.items is list
+                    && request.resource.data.items.size() > 0
+                    && request.resource.data.subtotalCents is int;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    match /quotes/{quoteId} {
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.email is string
+                    && request.resource.data.idea is string;
+      allow read, update, delete: if request.auth != null;
+    }
+  }
+}

@@ -1,0 +1,190 @@
+// Livello dati condiviso: inizializza Firebase e offre funzioni pronte
+// per lo storefront (assets/js/script.js) e per la dashboard (admin/admin.js).
+import { firebaseConfig, isFirebaseConfigured } from './firebase-config.js';
+
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+export const configured = isFirebaseConfigured();
+
+let app = null;
+let db = null;
+let auth = null;
+
+if (configured) {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
+}
+
+export { db, auth };
+
+const PRODUCTS_COL = 'products';
+const ORDERS_COL = 'orders';
+const QUOTES_COL = 'quotes';
+
+function slugify(text) {
+  return text
+    .toString()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
+export function genOrderId() {
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `LM-${rand}`;
+}
+
+/* ---------------- Products ---------------- */
+
+export function watchActiveProducts(onChange, onError) {
+  const q = query(collection(db, PRODUCTS_COL), where('active', '==', true), orderBy('sortOrder', 'asc'));
+  return onSnapshot(q, (snap) => onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), onError);
+}
+
+export function watchAllProducts(onChange, onError) {
+  const q = query(collection(db, PRODUCTS_COL), orderBy('sortOrder', 'asc'));
+  return onSnapshot(q, (snap) => onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), onError);
+}
+
+export async function getProductsByIds(ids) {
+  const results = await Promise.all(ids.map((id) => getDoc(doc(db, PRODUCTS_COL, id))));
+  return results.filter((d) => d.exists()).map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function createProduct(data) {
+  let id = slugify(data.name);
+  const existing = await getDoc(doc(db, PRODUCTS_COL, id));
+  if (existing.exists()) id = `${id}-${Math.random().toString(36).slice(2, 6)}`;
+
+  const allSnap = await getDocs(collection(db, PRODUCTS_COL));
+  const maxSort = allSnap.docs.reduce((m, d) => Math.max(m, d.data().sortOrder || 0), 0);
+
+  await setDoc(doc(db, PRODUCTS_COL, id), {
+    ...data,
+    sortOrder: maxSort + 1,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return id;
+}
+
+export async function updateProduct(id, data) {
+  await updateDoc(doc(db, PRODUCTS_COL, id), { ...data, updatedAt: serverTimestamp() });
+}
+
+export async function deleteProduct(id) {
+  await deleteDoc(doc(db, PRODUCTS_COL, id));
+}
+
+/* ---------------- Orders ---------------- */
+
+export async function createOrder(orderData) {
+  const id = genOrderId();
+  await setDoc(doc(db, ORDERS_COL, id), {
+    ...orderData,
+    status: 'da_confermare',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return id;
+}
+
+export function watchOrders(onChange, onError) {
+  const q = query(collection(db, ORDERS_COL), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snap) => onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), onError);
+}
+
+export async function updateOrderStatus(id, status) {
+  await updateDoc(doc(db, ORDERS_COL, id), { status, updatedAt: serverTimestamp() });
+}
+
+/* ---------------- Quote requests ("su misura") ---------------- */
+
+export async function createQuoteRequest(data) {
+  const ref = await addDoc(collection(db, QUOTES_COL), {
+    ...data,
+    status: 'nuova',
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+export function watchQuotes(onChange, onError) {
+  const q = query(collection(db, QUOTES_COL), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snap) => onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), onError);
+}
+
+export async function updateQuoteStatus(id, status) {
+  await updateDoc(doc(db, QUOTES_COL, id), { status });
+}
+
+/* ---------------- Auth ---------------- */
+
+export function watchAuth(cb) {
+  return onAuthStateChanged(auth, cb);
+}
+
+export async function login(email, password) {
+  await signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function logout() {
+  await signOut(auth);
+}
+
+/* ---------------- Image helper ---------------- */
+
+export function compressImageToDataUri(file, maxDim = 900, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}

@@ -219,6 +219,10 @@
           <label for="cf-idea">Descrivi la tua idea</label>
           <textarea id="cf-idea" name="idea" rows="4" required placeholder="Es. una replica illuminata della casa dei miei nonni..."></textarea>
         </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="cf-ack" name="ack" required>
+          <span>Ho letto e comprendo che i modellini realizzati su misura, in quanto personalizzati secondo le mie indicazioni, sono esclusi dal <a href="legal/recesso.html" target="_blank" rel="noopener">diritto di recesso</a> (art. 59 Codice del Consumo).</span>
+        </label>
         <button type="submit" class="btn btn-primary btn-block">Richiedi un preventivo</button>
         <p class="form-note" id="customFormNote" role="status" aria-live="polite"></p>
       </form>
@@ -343,18 +347,18 @@
       <h4>Assistenza</h4>
       <a href="#faq">FAQ</a>
       <a href="#contatti">Contatti</a>
-      <a href="#faq">Spedizioni &amp; resi</a>
+      <a href="legal/recesso.html">Spedizioni, resi &amp; recesso</a>
     </div>
     <div class="footer-col">
-      <h4>Azienda</h4>
-      <a href="#">Chi siamo</a>
-      <a href="#">Laboratorio</a>
-      <a href="#">Sostenibilità</a>
+      <h4>Legale</h4>
+      <a href="legal/termini.html">Termini e condizioni</a>
+      <a href="legal/privacy.html">Privacy policy</a>
+      <a href="legal/recesso.html">Diritto di recesso</a>
     </div>
   </div>
   <div class="container footer-bottom">
     <span>© 2026 LedMagico. Tutti i diritti riservati.</span>
-    <span>Progetto dimostrativo — nessuna transazione reale.</span>
+    <span id="footerNote">Pagamenti gestiti manualmente via email.</span>
   </div>
 </footer>
 
@@ -388,6 +392,52 @@
   </div>
 </div>
 
+<!-- ================= CHECKOUT MODAL ================= -->
+<div class="modal-overlay" id="checkoutOverlay">
+  <div class="product-modal checkout-modal" role="dialog" aria-modal="true">
+    <button class="icon-btn modal-close" id="checkoutModalClose" aria-label="Chiudi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="modal-body checkout-body">
+      <form class="checkout-form" id="checkoutForm" novalidate>
+        <h2>Completa l'ordine</h2>
+        <div class="form-row">
+          <label for="co-name">Nome e cognome</label>
+          <input type="text" id="co-name" required placeholder="Nome Cognome">
+        </div>
+        <div class="form-row">
+          <label for="co-email">Email</label>
+          <input type="email" id="co-email" required placeholder="nome@esempio.it">
+        </div>
+        <div class="form-row">
+          <label for="co-phone">Telefono</label>
+          <input type="tel" id="co-phone" placeholder="+39 ...">
+        </div>
+        <div class="form-row">
+          <label for="co-address">Indirizzo di spedizione</label>
+          <textarea id="co-address" rows="3" required placeholder="Via, numero civico, CAP, città, provincia"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="co-notes">Note (opzionale)</label>
+          <textarea id="co-notes" rows="2" placeholder="Richieste particolari per la spedizione o il colore LED"></textarea>
+        </div>
+        <div class="checkout-summary" id="checkoutSummary"></div>
+        <label class="checkbox-row" id="checkoutAckRow" hidden>
+          <input type="checkbox" id="co-ack">
+          <span>Il mio ordine contiene un pezzo su misura: comprendo che, essendo personalizzato, è escluso dal <a href="legal/recesso.html" target="_blank" rel="noopener">diritto di recesso</a> (art. 59 Codice del Consumo).</span>
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" id="co-terms" required>
+          <span>Ho letto e accetto i <a href="legal/termini.html" target="_blank" rel="noopener">Termini e condizioni</a> e l'<a href="legal/privacy.html" target="_blank" rel="noopener">informativa Privacy</a>.</span>
+        </label>
+        <button type="submit" class="btn btn-primary btn-block" id="checkoutSubmitBtn">Conferma ordine</button>
+        <p class="form-note" id="checkoutFormNote" role="status" aria-live="polite"></p>
+        <p class="checkout-payment-hint">Il pagamento online non è ancora attivo: dopo la conferma ti contatteremo via email con le istruzioni per completare il pagamento (bonifico bancario).</p>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- ================= CHECKOUT SUCCESS ================= -->
 <div class="modal-overlay" id="successOverlay">
   <div class="success-modal">
@@ -395,13 +445,14 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
     </div>
     <h3>Ordine ricevuto!</h3>
-    <p>Grazie per aver scelto LedMagico. Numero ordine <strong id="orderNumber">#LM-0000</strong>. Riceverai una email di conferma a breve.</p>
+    <p>Grazie per aver scelto LedMagico. Numero ordine <strong id="orderNumber">#LM-0000</strong>.</p>
+    <p id="successDetail" class="success-detail"></p>
     <button class="btn btn-primary" id="successClose">Continua a esplorare</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<script src="assets/js/script.js"></script>
+<script type="module" src="assets/js/script.js"></script>
 </body>
 </html>

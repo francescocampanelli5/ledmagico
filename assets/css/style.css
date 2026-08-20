@@ -351,6 +351,25 @@ p{ margin: 0 0 1em; color: var(--text-dim); }
 .form-note{ font-size:.82rem; margin: 12px 0 0; min-height: 1em; color: var(--success); }
 .form-note.is-error{ color: #ff8f8f; }
 
+.checkbox-row{
+  display:flex; align-items:flex-start; gap:10px;
+  font-size:.8rem; color: var(--text-dim); margin: 14px 0; cursor:pointer;
+}
+.checkbox-row input{ margin-top:3px; flex-shrink:0; width:15px; height:15px; accent-color: var(--gold); }
+.checkbox-row a{ color: var(--gold-soft); text-decoration: underline; }
+
+.checkout-modal{ max-width: 560px; }
+.checkout-body{ display:block; padding: 40px 36px; }
+.checkout-form h2{ font-size:1.5rem; margin-bottom: 20px; }
+.checkout-summary{
+  background: var(--bg); border:1px solid var(--border-soft); border-radius: var(--radius-sm);
+  padding: 14px 16px; margin: 18px 0 4px; font-size:.84rem;
+}
+.checkout-summary-line{ display:flex; justify-content:space-between; padding: 4px 0; color: var(--text-dim); }
+.checkout-summary-total{ display:flex; justify-content:space-between; padding-top:10px; margin-top:8px; border-top:1px solid var(--border-soft); font-family: var(--font-display); font-size:1.05rem; color: var(--gold-soft); }
+.checkout-payment-hint{ font-size:.76rem; color: var(--text-faint); margin: 14px 0 0; text-align:center; }
+.success-detail{ font-size:.84rem; color: var(--text-faint); margin-top:-8px; }
+
 /* ============ Testimonials ============ */
 .testimonial-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
 .testimonial-card{
@@ -530,6 +549,21 @@ p{ margin: 0 0 1em; color: var(--text-dim); }
 /* ============ Reveal on scroll ============ */
 .reveal{ opacity:0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
 .reveal.is-visible{ opacity:1; transform: translateY(0); }
+
+/* ============ Legal pages ============ */
+.legal-wrap{ max-width: 760px; margin: 0 auto; padding: 140px 24px 100px; }
+.legal-wrap .back-link{ display:inline-flex; align-items:center; gap:6px; color: var(--gold-soft); font-size:.86rem; margin-bottom: 24px; }
+.legal-wrap h1{ font-size: 2.1rem; margin-bottom: 6px; }
+.legal-updated{ color: var(--text-faint); font-size:.82rem; margin-bottom: 40px; }
+.legal-wrap h2{ font-size: 1.25rem; margin-top: 40px; color: var(--gold-soft); }
+.legal-wrap p, .legal-wrap li{ color: var(--text-dim); font-size:.94rem; }
+.legal-wrap ul{ padding-left: 20px; list-style: disc; margin-bottom: 1em; }
+.legal-wrap strong{ color: var(--text); }
+.legal-placeholder{ background: rgba(244,192,100,0.1); color: var(--gold-soft); padding: 1px 6px; border-radius: 4px; font-size: .92em; }
+.legal-callout{
+  background: var(--surface); border:1px solid var(--border); border-radius: var(--radius-md);
+  padding: 18px 20px; margin: 24px 0; font-size:.88rem; color: var(--text-dim);
+}
 
 /* ============ Responsive ============ */
 @media (max-width: 980px){

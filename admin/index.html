@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — LedMagico</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23f4c064%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/admin.css">
+</head>
+<body class="admin-body">
+
+<!-- ============ SETUP NOTICE (Firebase non configurato) ============ -->
+<div id="setupNotice" class="admin-setup-notice" hidden>
+  <div class="admin-setup-card">
+    <span class="logo-dot" aria-hidden="true"></span>
+    <h1>Configura Firebase</h1>
+    <p>La dashboard non è ancora collegata a un progetto Firebase. Apri <code>assets/js/firebase-config.js</code> e inserisci i valori del tuo progetto, poi segui i passaggi in <code>SETUP.md</code> per creare l'utente amministratore.</p>
+  </div>
+</div>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginScreen" class="admin-login" hidden>
+  <form class="admin-login-card" id="loginForm">
+    <span class="logo-dot" aria-hidden="true"></span>
+    <h1>Led<em>Magico</em> <small>dashboard</small></h1>
+    <div class="form-row">
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" required autocomplete="username">
+    </div>
+    <div class="form-row">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Accedi</button>
+    <p class="form-note is-error" id="loginNote" role="status" aria-live="polite"></p>
+  </form>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div id="dashboard" class="admin-shell" hidden>
+  <header class="admin-header">
+    <div class="logo"><span class="logo-dot" aria-hidden="true"></span><span class="logo-text">Led<em>Magico</em></span><small>dashboard</small></div>
+    <nav class="admin-tabs">
+      <button class="admin-tab is-active" data-tab="products">Prodotti</button>
+      <button class="admin-tab" data-tab="orders">Ordini <span class="admin-tab-badge" id="ordersBadge" hidden></span></button>
+      <button class="admin-tab" data-tab="quotes">Richieste su misura <span class="admin-tab-badge" id="quotesBadge" hidden></span></button>
+    </nav>
+    <div class="admin-header-actions">
+      <a href="../index.html" target="_blank" class="btn btn-ghost btn-sm">Vedi il sito</a>
+      <button class="btn btn-ghost btn-sm" id="logoutBtn">Esci</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+
+    <!-- ---- PRODOTTI ---- -->
+    <section class="admin-panel is-active" id="panel-products">
+      <div class="admin-panel-head">
+        <h2>Prodotti</h2>
+        <button class="btn btn-primary btn-sm" id="newProductBtn">+ Nuovo prodotto</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="productsTable">
+          <thead><tr><th></th><th>Nome</th><th>Categoria</th><th>Prezzo</th><th>Stato</th><th></th></tr></thead>
+          <tbody id="productsTbody"></tbody>
+        </table>
+      </div>
+      <p class="admin-empty" id="productsEmpty" hidden>Nessun prodotto ancora. Aggiungine uno per iniziare.</p>
+    </section>
+
+    <!-- ---- ORDINI ---- -->
+    <section class="admin-panel" id="panel-orders">
+      <div class="admin-panel-head"><h2>Ordini</h2></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="ordersTable">
+          <thead><tr><th>Ordine</th><th>Cliente</th><th>Articoli</th><th>Totale</th><th>Stato</th><th>Data</th><th></th></tr></thead>
+          <tbody id="ordersTbody"></tbody>
+        </table>
+      </div>
+      <p class="admin-empty" id="ordersEmpty" hidden>Nessun ordine ricevuto ancora.</p>
+    </section>
+
+    <!-- ---- RICHIESTE SU MISURA ---- -->
+    <section class="admin-panel" id="panel-quotes">
+      <div class="admin-panel-head"><h2>Richieste su misura</h2></div>
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="quotesTable">
+          <thead><tr><th>Nome</th><th>Email</th><th>Idea</th><th>Data</th><th>Stato</th><th></th></tr></thead>
+          <tbody id="quotesTbody"></tbody>
+        </table>
+      </div>
+      <p class="admin-empty" id="quotesEmpty" hidden>Nessuna richiesta ricevuta ancora.</p>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ PRODUCT EDIT MODAL ============ -->
+<div class="modal-overlay" id="productEditOverlay">
+  <div class="product-modal admin-edit-modal" role="dialog" aria-modal="true">
+    <button class="icon-btn modal-close" id="productEditClose" aria-label="Chiudi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="modal-body admin-edit-body">
+      <form id="productForm">
+        <h2 id="productFormTitle">Nuovo prodotto</h2>
+
+        <div class="admin-form-grid">
+          <div class="form-row">
+            <label for="pf-name">Nome</label>
+            <input type="text" id="pf-name" required>
+          </div>
+          <div class="form-row">
+            <label for="pf-category">Categoria</label>
+            <select id="pf-category" required>
+              <option value="monumenti">Monumenti</option>
+              <option value="barche">Barche &amp; Mare</option>
+              <option value="presepi">Presepi</option>
+              <option value="fantasia">Fantasia</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label for="pf-price">Prezzo (€)</label>
+            <input type="number" id="pf-price" min="0.01" step="0.01" required>
+          </div>
+          <div class="form-row">
+            <label for="pf-icon">Icona di fallback (se nessuna foto)</label>
+            <select id="pf-icon">
+              <option value="eiffel">Torre Eiffel</option>
+              <option value="skyline">Skyline</option>
+              <option value="barca">Barca a vela</option>
+              <option value="pirata">Nave pirata</option>
+              <option value="castello">Castello</option>
+              <option value="presepe">Presepe</option>
+              <option value="faro">Faro</option>
+              <option value="mongolfiera">Mongolfiera</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="pf-shortdesc">Descrizione breve (mostrata nella card)</label>
+          <input type="text" id="pf-shortdesc" maxlength="140">
+        </div>
+        <div class="form-row">
+          <label for="pf-fulldesc">Descrizione completa (scheda prodotto)</label>
+          <textarea id="pf-fulldesc" rows="3"></textarea>
+        </div>
+        <div class="form-row">
+          <label for="pf-specs">Caratteristiche tecniche (una per riga)</label>
+          <textarea id="pf-specs" rows="4" placeholder="Altezza 26 cm&#10;Legno di faggio&#10;40+ micro LED"></textarea>
+        </div>
+
+        <div class="form-row">
+          <label for="pf-photo">Foto prodotto</label>
+          <input type="file" id="pf-photo" accept="image/*">
+          <div class="admin-photo-preview" id="pfPhotoPreview"></div>
+        </div>
+
+        <label class="checkbox-row">
+          <input type="checkbox" id="pf-custom">
+          <span>Prodotto realizzato su misura (escluso dal diritto di recesso)</span>
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" id="pf-active" checked>
+          <span>Visibile nel negozio</span>
+        </label>
+
+        <div class="admin-form-actions">
+          <button type="button" class="btn btn-ghost" id="productDeleteBtn" hidden>Elimina prodotto</button>
+          <button type="submit" class="btn btn-primary" id="productSaveBtn">Salva prodotto</button>
+        </div>
+        <p class="form-note" id="productFormNote" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="admin.js"></script>
+</body>
+</html>
