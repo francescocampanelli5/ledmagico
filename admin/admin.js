@@ -8,7 +8,7 @@ import {
   watchQuotes, updateQuoteStatus,
   watchSubscribers,
   compressImageToDataUri,
-} from '../assets/js/firebase-app.js';
+} from '../assets/js/firebase-app.js?v=2';
 
 const ORDER_STATUSES = {
   da_confermare: 'Da confermare',

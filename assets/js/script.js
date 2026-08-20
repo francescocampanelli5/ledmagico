@@ -1,6 +1,6 @@
 /* ============ LedMagico — App logic (storefront) ============ */
 import { ICONS, renderProductMedia, CATEGORY_LABEL, COLOR_LABEL, COLOR_VARS } from './icons.js';
-import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, genOrderId } from './firebase-app.js';
+import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, genOrderId } from './firebase-app.js?v=2';
 import { escapeHtml } from './sanitize.js';
 
 /* ---------- Dati di fallback (usati finché Firebase non è configurato) ---------- */

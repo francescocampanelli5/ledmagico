@@ -1,6 +1,6 @@
 // Livello dati condiviso: inizializza Firebase e offre funzioni pronte
 // per lo storefront (assets/js/script.js) e per la dashboard (admin/admin.js).
-import { firebaseConfig, isFirebaseConfigured } from './firebase-config.js';
+import { firebaseConfig, isFirebaseConfigured } from './firebase-config.js?v=2';
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
@@ -65,8 +65,18 @@ export function genOrderId() {
 /* ---------------- Products ---------------- */
 
 export function watchActiveProducts(onChange, onError) {
-  const q = query(collection(db, PRODUCTS_COL), where('active', '==', true), orderBy('sortOrder', 'asc'));
-  return onSnapshot(q, (snap) => onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), onError);
+  // Nota: ordiniamo lato client (invece di orderBy in query) per evitare di
+  // dover creare un indice composito Firestore su (active, sortOrder).
+  const q = query(collection(db, PRODUCTS_COL), where('active', '==', true));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+      onChange(list);
+    },
+    onError
+  );
 }
 
 export function watchAllProducts(onChange, onError) {
