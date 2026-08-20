@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LedMagico — Modellini artigianali illuminati a LED</title>
 <meta name="description" content="Modellini artigianali in legno e resina, illuminati a mano con luci LED su misura. Torri, navi, presepi e castelli che trasformano la tua casa.">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; frame-src https://*.firebaseapp.com; base-uri 'self'; form-action 'self'">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23f4c064%22/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -125,7 +127,7 @@
       </div>
       <div class="trust-item">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="14" height="11" rx="1.5"/><path d="M16 10h3.2L22 13.4V18h-6"/><circle cx="7" cy="19.5" r="1.6"/><circle cx="17.5" cy="19.5" r="1.6"/></svg>
-        <div><strong>Spedizione tracciata 3–5 giorni</strong><span>Imballo protetto pensato per i modellini</span></div>
+        <div><strong>Preparato apposta per te</strong><span>In lavorazione ~5–7 giorni, poi spedizione tracciata e imballo protetto</span></div>
       </div>
       <div class="trust-item">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 12l4-2m-4 2l4 2"/><path d="M12 7v5l3 2"/></svg>
@@ -198,10 +200,11 @@
       <div class="custom-copy">
         <span class="eyebrow">Progetti su misura</span>
         <h2>Hai un'idea in mente?</h2>
-        <p>Un modellino di famiglia, un edificio che ami, un ricordo da illuminare. Raccontacelo: lo trasformiamo in un pezzo unico, costruito e illuminato apposta per te.</p>
+        <p>Un modellino di famiglia, un edificio che ami, un ricordo da illuminare — oppure un prodotto che hai già visto altrove. Raccontacelo o incollaci il link: lo troviamo, lo personalizziamo con le luci LED e te lo spediamo pronto per brillare.</p>
         <ul class="custom-list">
           <li>Preventivo gratuito entro 48 ore</li>
           <li>Scelta libera di dimensioni, materiali e colore luce</li>
+          <li>Partiamo anche da un link: un modello che hai visto online, lo procuriamo e personalizziamo noi</li>
           <li>Pezzo unico, numerato e certificato dal laboratorio</li>
         </ul>
       </div>
@@ -219,9 +222,13 @@
           <label for="cf-idea">Descrivi la tua idea</label>
           <textarea id="cf-idea" name="idea" rows="4" required placeholder="Es. una replica illuminata della casa dei miei nonni..."></textarea>
         </div>
+        <div class="form-row">
+          <label for="cf-link">Link di un prodotto da personalizzare <span class="label-optional">(opzionale)</span></label>
+          <input type="url" id="cf-link" name="link" placeholder="Es. link Amazon, Etsy o un'immagine online del modello che vuoi">
+        </div>
         <label class="checkbox-row">
           <input type="checkbox" id="cf-ack" name="ack" required>
-          <span>Ho letto e comprendo che i modellini realizzati su misura, in quanto personalizzati secondo le mie indicazioni, sono esclusi dal <a href="legal/recesso.html" target="_blank" rel="noopener">diritto di recesso</a> (art. 59 Codice del Consumo).</span>
+          <span>Ho letto e comprendo che, essendo il mio pezzo realizzato su misura per me, non è applicabile il <a href="legal/recesso.html" target="_blank" rel="noopener">diritto di recesso</a> (art. 59 Codice del Consumo) — resta sempre valida la garanzia legale di 24 mesi.</span>
         </label>
         <button type="submit" class="btn btn-primary btn-block">Richiedi un preventivo</button>
         <p class="form-note" id="customFormNote" role="status" aria-live="polite"></p>
@@ -289,15 +296,15 @@
         </div>
         <div class="faq-item">
           <button class="faq-question">Quanto tempo richiede la spedizione?<span class="faq-icon">+</span></button>
-          <div class="faq-answer"><p>3–5 giorni lavorativi in Italia, fino a 10 giorni per il resto d'Europa. Ogni ordine viene tracciato e imballato con protezioni su misura.</p></div>
+          <div class="faq-answer"><p>Ogni pezzo viene preparato su richiesta: la lavorazione richiede indicativamente 5–7 giorni, a cui si aggiungono 3–5 giorni di spedizione tracciata in Italia (fino a 10 per il resto d'Europa). Ti aggiorniamo via email a ogni passaggio.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-question">Posso richiedere un modello personalizzato?<span class="faq-icon">+</span></button>
-          <div class="faq-answer"><p>Certo, è la nostra specialità. Compila il form nella sezione "Su misura": ti risponderemo con un preventivo entro 48 ore.</p></div>
+          <button class="faq-question">Posso richiedere un modello personalizzato o partire da un link?<span class="faq-icon">+</span></button>
+          <div class="faq-answer"><p>Certo, è la nostra specialità: tutti i nostri modellini sono realizzati su richiesta. Compila il form nella sezione "Su misura" descrivendo la tua idea oppure incollando il link di un prodotto che hai visto altrove — lo procuriamo noi e lo personalizziamo con le luci LED. Ti rispondiamo con un preventivo entro 48 ore.</p></div>
         </div>
         <div class="faq-item">
-          <button class="faq-question">È possibile reso o cambio?<span class="faq-icon">+</span></button>
-          <div class="faq-answer"><p>Hai 14 giorni di tempo dalla consegna per reso o cambio, a fronte di un modello integro e nella confezione originale.</p></div>
+          <button class="faq-question">Posso restituire un modellino se cambio idea?<span class="faq-icon">+</span></button>
+          <div class="faq-answer"><p>Ogni modellino LedMagico è realizzato apposta per te dopo l'ordine: per questo, come previsto dalla legge per i beni personalizzati (art. 59 Codice del Consumo), non è possibile il reso per "cambio idea". Resta invece sempre valida la garanzia legale di 24 mesi: se il tuo pezzo arriva danneggiato o con un difetto, lo sistemiamo o sostituiamo senza costi. Dettagli completi nella pagina <a href="legal/recesso.html">Diritto di Recesso</a>.</p></div>
         </div>
       </div>
     </div>
@@ -315,6 +322,7 @@
         <input type="email" id="nl-email" required placeholder="La tua email">
         <button type="submit" class="btn btn-primary">Iscrivimi</button>
       </form>
+      <p class="newsletter-consent">Iscrivendoti acconsenti a ricevere occasionali email su nuovi modelli. Puoi disiscriverti quando vuoi — <a href="legal/privacy.html">informativa privacy</a>.</p>
       <p class="form-note" id="newsletterNote" role="status" aria-live="polite"></p>
     </div>
   </section>
@@ -422,9 +430,12 @@
           <textarea id="co-notes" rows="2" placeholder="Richieste particolari per la spedizione o il colore LED"></textarea>
         </div>
         <div class="checkout-summary" id="checkoutSummary"></div>
-        <label class="checkbox-row" id="checkoutAckRow" hidden>
-          <input type="checkbox" id="co-ack">
-          <span>Il mio ordine contiene un pezzo su misura: comprendo che, essendo personalizzato, è escluso dal <a href="legal/recesso.html" target="_blank" rel="noopener">diritto di recesso</a> (art. 59 Codice del Consumo).</span>
+        <div class="checkout-custom-callout">
+          <strong>Il tuo pezzo nasce apposta per te.</strong> Dopo l'ordine lo prepariamo e cablìamo su misura: per questo non rientra nel reso "cambio idea" — ma resta sempre coperto dalla garanzia legale di 24 mesi se arriva danneggiato o difettoso.
+        </div>
+        <label class="checkbox-row" id="checkoutAckRow">
+          <input type="checkbox" id="co-ack" required>
+          <span>Confermo di aver compreso che il mio ordine è realizzato su misura e non è soggetto a <a href="legal/recesso.html" target="_blank" rel="noopener">diritto di recesso</a> (art. 59 Codice del Consumo).</span>
         </label>
         <label class="checkbox-row">
           <input type="checkbox" id="co-terms" required>

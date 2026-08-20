@@ -43,6 +43,8 @@ export { db, auth };
 const PRODUCTS_COL = 'products';
 const ORDERS_COL = 'orders';
 const QUOTES_COL = 'quotes';
+const SUBSCRIBERS_COL = 'subscribers';
+const MAIL_OUTBOX_COL = 'mail_outbox';
 
 function slugify(text) {
   return text
@@ -109,9 +111,12 @@ export async function createOrder(orderData) {
   await setDoc(doc(db, ORDERS_COL, id), {
     ...orderData,
     status: 'da_confermare',
+    followUpSent: false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  await enqueueMail('order_received', orderData.customerEmail, ORDERS_COL, id);
+  await enqueueMail('owner_new_order', 'shop', ORDERS_COL, id);
   return id;
 }
 
@@ -120,8 +125,11 @@ export function watchOrders(onChange, onError) {
   return onSnapshot(q, (snap) => onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), onError);
 }
 
-export async function updateOrderStatus(id, status) {
+export async function updateOrderStatus(id, status, customerEmail) {
   await updateDoc(doc(db, ORDERS_COL, id), { status, updatedAt: serverTimestamp() });
+  if (['confermato', 'spedito', 'annullato'].includes(status) && customerEmail) {
+    await enqueueMail('order_status_changed', customerEmail, ORDERS_COL, id, { status });
+  }
 }
 
 /* ---------------- Quote requests ("su misura") ---------------- */
@@ -132,6 +140,8 @@ export async function createQuoteRequest(data) {
     status: 'nuova',
     createdAt: serverTimestamp(),
   });
+  await enqueueMail('quote_received', data.email, QUOTES_COL, ref.id);
+  await enqueueMail('owner_new_quote', 'shop', QUOTES_COL, ref.id);
   return ref.id;
 }
 
@@ -142,6 +152,52 @@ export function watchQuotes(onChange, onError) {
 
 export async function updateQuoteStatus(id, status) {
   await updateDoc(doc(db, QUOTES_COL, id), { status });
+}
+
+/* ---------------- Newsletter ---------------- */
+
+export async function subscribeNewsletter(email) {
+  const id = email.trim().toLowerCase().replace(/[^a-z0-9@._-]/g, '_');
+  await setDoc(doc(db, SUBSCRIBERS_COL, id), {
+    email: email.trim(),
+    unsubscribed: false,
+    createdAt: serverTimestamp(),
+  }, { merge: true });
+  await enqueueMail('newsletter_welcome', email.trim(), SUBSCRIBERS_COL, id);
+  return id;
+}
+
+export function watchSubscribers(onChange, onError) {
+  const q = query(collection(db, SUBSCRIBERS_COL), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snap) => onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), onError);
+}
+
+export async function unsubscribeSelf(id) {
+  await updateDoc(doc(db, SUBSCRIBERS_COL, id), { unsubscribed: true, unsubscribedAt: serverTimestamp() });
+}
+
+/* ---------------- Coda email (mail_outbox) ---------------- */
+// Ogni riga qui accodata viene letta e inviata da Google Apps Script
+// (vedi google-apps-script/Code.gs) entro pochi minuti, usando Gmail
+// dell'account ledmagicoshop@gmail.com. Il sito non invia email
+// direttamente: si limita a "prenotare" un invio con un riferimento al
+// documento reale (ordine/preventivo/prodotto), mai con contenuto libero,
+// per evitare che la coda possa essere usata per inviare email arbitrarie.
+
+export async function enqueueMail(type, to, refCollection, refId, meta = {}) {
+  await addDoc(collection(db, MAIL_OUTBOX_COL), {
+    type,
+    to,
+    refCollection: refCollection || null,
+    refId: refId || null,
+    meta,
+    sent: false,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function announceProduct(productId) {
+  await enqueueMail('product_announcement', 'subscribers', PRODUCTS_COL, productId);
 }
 
 /* ---------------- Auth ---------------- */

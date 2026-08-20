@@ -1,17 +1,18 @@
 /* ============ LedMagico — App logic (storefront) ============ */
 import { ICONS, renderProductMedia, CATEGORY_LABEL, COLOR_LABEL, COLOR_VARS } from './icons.js';
-import { configured, watchActiveProducts, createOrder, createQuoteRequest, genOrderId } from './firebase-app.js';
+import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, genOrderId } from './firebase-app.js';
+import { escapeHtml } from './sanitize.js';
 
 /* ---------- Dati di fallback (usati finché Firebase non è configurato) ---------- */
 const FALLBACK_PRODUCTS = [
-  { id: 'eiffel', name: 'Torre Eiffel LED', category: 'monumenti', price: 49, shortDesc: 'La dama di ferro parigina, reinterpretata in legno e luce calda.', fullDesc: 'Una replica in scala della Torre Eiffel, intagliata a mano in legno chiaro e cablata con oltre 40 micro LED lungo la struttura reticolare.', specs: ['Altezza 26 cm · base 12x12 cm', 'Legno di faggio e metallo verniciato', '40+ micro LED integrati', 'Alimentazione USB, cavo 1.5 m incluso'], iconKey: 'eiffel', isCustom: false },
-  { id: 'skyline', name: 'Skyline Milano LED', category: 'monumenti', price: 59, shortDesc: 'Il profilo della città che non dorme mai, acceso sulla tua libreria.', fullDesc: 'Uno skyline stilizzato dei grattacieli milanesi, in resina opaca con finestre luminose realizzate una a una.', specs: ['Larghezza 34 cm · altezza 22 cm', 'Resina opaca antiriflesso', '60+ finestre LED indipendenti'], iconKey: 'skyline', isCustom: false },
-  { id: 'barca', name: 'Barca a Vela LED', category: 'barche', price: 39, shortDesc: 'Vele che catturano la luce come catturano il vento.', fullDesc: 'Uno scafo in legno di cedro con vele in tessuto naturale, illuminato da una striscia LED lungo l\'alberatura.', specs: ['Altezza 18 cm · lunghezza 24 cm', 'Scafo in cedro, vele in cotone trattato'], iconKey: 'barca', isCustom: false },
-  { id: 'pirata', name: 'Nave Pirata LED', category: 'barche', price: 65, shortDesc: 'Due alberi, vele scure e una lanterna che non si spegne mai.', fullDesc: 'Un vascello corsaro dal dettaglio ricco: ponte in legno scuro, vele dipinte a mano e lanterne LED a bordo.', specs: ['Altezza 24 cm · lunghezza 30 cm', 'Legno scuro trattato a mano'], iconKey: 'pirata', isCustom: false },
-  { id: 'castello', name: 'Castello Incantato LED', category: 'fantasia', price: 72, shortDesc: 'Torri, bandiere e finestre che si accendono una a una.', fullDesc: 'Un castello da fiaba con cinque torri, ognuna con la propria finestra luminosa.', specs: ['Altezza 28 cm · base 20x20 cm', 'Resina a rilievo dipinta a mano'], iconKey: 'castello', isCustom: false },
-  { id: 'presepe', name: 'Presepe LED con Acqua', category: 'presepi', price: 89, shortDesc: 'Il ruscello scorre davvero, la stella cometa non si spegne mai.', fullDesc: 'Una capanna in legno con un vero micro-circuito ad acqua che simula un ruscello, illuminato da LED blu.', specs: ['Altezza 20 cm · base 30x22 cm', 'Pompa ad acqua silenziosa inclusa'], iconKey: 'presepe', isCustom: false },
-  { id: 'faro', name: 'Faro LED', category: 'barche', price: 35, shortDesc: 'Un raggio di luce rotante, come sulla costa vera.', fullDesc: 'Un faro marittimo in legno tornito a mano, con lanterna superiore dotata di LED rotante.', specs: ['Altezza 21 cm · base Ø 9 cm', 'Legno tornito, base in pietra ricomposta'], iconKey: 'faro', isCustom: false },
-  { id: 'mongolfiera', name: 'Mongolfiera LED', category: 'fantasia', price: 45, shortDesc: 'Sospesa in volo, illuminata dall\'interno come al mattino presto.', fullDesc: 'Una mongolfiera in tessuto rigido e cesto in vimini intrecciato a mano, con un LED interno.', specs: ['Altezza 19 cm · diametro pallone 14 cm', 'Cesto in vimini naturale intrecciato'], iconKey: 'mongolfiera', isCustom: false },
+  { id: 'eiffel', name: 'Torre Eiffel LED', category: 'monumenti', price: 49, shortDesc: 'La dama di ferro parigina, reinterpretata in legno e luce calda.', fullDesc: 'Una replica in scala della Torre Eiffel, intagliata a mano in legno chiaro e cablata con oltre 40 micro LED lungo la struttura reticolare.', specs: ['Altezza 26 cm · base 12x12 cm', 'Legno di faggio e metallo verniciato', '40+ micro LED integrati', 'Alimentazione USB, cavo 1.5 m incluso'], iconKey: 'eiffel', isCustom: true },
+  { id: 'skyline', name: 'Skyline Milano LED', category: 'monumenti', price: 59, shortDesc: 'Il profilo della città che non dorme mai, acceso sulla tua libreria.', fullDesc: 'Uno skyline stilizzato dei grattacieli milanesi, in resina opaca con finestre luminose realizzate una a una.', specs: ['Larghezza 34 cm · altezza 22 cm', 'Resina opaca antiriflesso', '60+ finestre LED indipendenti'], iconKey: 'skyline', isCustom: true },
+  { id: 'barca', name: 'Barca a Vela LED', category: 'barche', price: 39, shortDesc: 'Vele che catturano la luce come catturano il vento.', fullDesc: 'Uno scafo in legno di cedro con vele in tessuto naturale, illuminato da una striscia LED lungo l\'alberatura.', specs: ['Altezza 18 cm · lunghezza 24 cm', 'Scafo in cedro, vele in cotone trattato'], iconKey: 'barca', isCustom: true },
+  { id: 'pirata', name: 'Nave Pirata LED', category: 'barche', price: 65, shortDesc: 'Due alberi, vele scure e una lanterna che non si spegne mai.', fullDesc: 'Un vascello corsaro dal dettaglio ricco: ponte in legno scuro, vele dipinte a mano e lanterne LED a bordo.', specs: ['Altezza 24 cm · lunghezza 30 cm', 'Legno scuro trattato a mano'], iconKey: 'pirata', isCustom: true },
+  { id: 'castello', name: 'Castello Incantato LED', category: 'fantasia', price: 72, shortDesc: 'Torri, bandiere e finestre che si accendono una a una.', fullDesc: 'Un castello da fiaba con cinque torri, ognuna con la propria finestra luminosa.', specs: ['Altezza 28 cm · base 20x20 cm', 'Resina a rilievo dipinta a mano'], iconKey: 'castello', isCustom: true },
+  { id: 'presepe', name: 'Presepe LED con Acqua', category: 'presepi', price: 89, shortDesc: 'Il ruscello scorre davvero, la stella cometa non si spegne mai.', fullDesc: 'Una capanna in legno con un vero micro-circuito ad acqua che simula un ruscello, illuminato da LED blu.', specs: ['Altezza 20 cm · base 30x22 cm', 'Pompa ad acqua silenziosa inclusa'], iconKey: 'presepe', isCustom: true },
+  { id: 'faro', name: 'Faro LED', category: 'barche', price: 35, shortDesc: 'Un raggio di luce rotante, come sulla costa vera.', fullDesc: 'Un faro marittimo in legno tornito a mano, con lanterna superiore dotata di LED rotante.', specs: ['Altezza 21 cm · base Ø 9 cm', 'Legno tornito, base in pietra ricomposta'], iconKey: 'faro', isCustom: true },
+  { id: 'mongolfiera', name: 'Mongolfiera LED', category: 'fantasia', price: 45, shortDesc: 'Sospesa in volo, illuminata dall\'interno come al mattino presto.', fullDesc: 'Una mongolfiera in tessuto rigido e cesto in vimini intrecciato a mano, con un LED interno.', specs: ['Altezza 19 cm · diametro pallone 14 cm', 'Cesto in vimini naturale intrecciato'], iconKey: 'mongolfiera', isCustom: true },
 ].map((p) => ({ ...p, active: true, priceCents: Math.round(p.price * 100) }));
 
 const fmtPrice = (n) => `€${n.toFixed(0)}`;
@@ -76,11 +77,12 @@ function renderGrid() {
     card.style.transitionDelay = `${Math.min(i, 7) * 40}ms`;
     card.innerHTML = `
       <div class="product-media" data-open="${p.id}">
-        <span class="product-tag">${CATEGORY_LABEL[p.category] || p.category}</span>
+        <span class="product-tag">${escapeHtml(CATEGORY_LABEL[p.category] || p.category)}</span>
         ${renderProductMedia(p)}
       </div>
-      <h3 class="product-name" data-open="${p.id}">${p.name}</h3>
-      <p class="product-desc">${p.shortDesc || ''}</p>
+      <h3 class="product-name" data-open="${p.id}">${escapeHtml(p.name)}</h3>
+      <p class="product-desc">${escapeHtml(p.shortDesc || '')}</p>
+      <p class="product-custom-note">✦ Preparato e cablato apposta per te dopo l'ordine</p>
       <div class="product-footer">
         <div class="product-price">${fmtPrice(p.price)}<small>IVA inclusa</small></div>
         <button class="btn btn-primary btn-sm" data-quickadd="${p.id}">Aggiungi</button>
@@ -133,10 +135,10 @@ function renderModal(p) {
   modalBody.innerHTML = `
     <div class="modal-media">${renderProductMedia(p)}</div>
     <div class="modal-info">
-      <span class="modal-tag">${CATEGORY_LABEL[p.category] || p.category}${p.isCustom ? ' · Su misura' : ''}</span>
-      <h2>${p.name}</h2>
+      <span class="modal-tag">${escapeHtml(CATEGORY_LABEL[p.category] || p.category)}</span>
+      <h2>${escapeHtml(p.name)}</h2>
       <div class="modal-price">${fmtPrice(p.price)} <small style="font-size:.7rem;color:var(--text-faint);font-family:var(--font-body);">IVA inclusa</small></div>
-      <p class="modal-desc">${p.fullDesc || p.shortDesc || ''}</p>
+      <p class="modal-desc">${escapeHtml(p.fullDesc || p.shortDesc || '')}</p>
 
       <div class="option-group">
         <span class="option-label">Colore LED — <span id="colorLabel">${COLOR_LABEL.warm}</span></span>
@@ -160,10 +162,10 @@ function renderModal(p) {
         <button class="btn btn-primary" id="modalAddBtn">Aggiungi al carrello · ${fmtPrice(p.price)}</button>
       </div>
 
-      ${p.isCustom ? '<p class="checkout-payment-hint" style="text-align:left;margin-top:16px;">Questo pezzo è realizzato su misura ed è escluso dal diritto di recesso.</p>' : ''}
+      <p class="modal-custom-note">✦ Ogni pezzo viene preparato, illuminato e cablato a mano dopo la conferma dell'ordine: il tuo non esiste ancora finché non lo ordini.</p>
 
       <ul class="modal-specs">
-        ${(p.specs || []).map((s) => `<li>${s}</li>`).join('')}
+        ${(p.specs || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('')}
       </ul>
     </div>`;
 
@@ -224,7 +226,7 @@ function renderCart() {
       <div class="cart-line">
         <div class="cart-line-media" data-icon-idx="${i}"></div>
         <div class="cart-line-info">
-          <h5>${p.name}</h5>
+          <h5>${escapeHtml(p.name)}</h5>
           <div class="cart-line-meta">${COLOR_LABEL[line.color]}</div>
           <div class="cart-line-controls">
             <button class="qty-btn" data-qty="-1" data-idx="${i}">−</button>
@@ -276,7 +278,6 @@ drawerOverlay.addEventListener('click', closeCart);
 const checkoutOverlay = document.getElementById('checkoutOverlay');
 const checkoutForm = document.getElementById('checkoutForm');
 const checkoutSummary = document.getElementById('checkoutSummary');
-const checkoutAckRow = document.getElementById('checkoutAckRow');
 const checkoutFormNote = document.getElementById('checkoutFormNote');
 const checkoutSubmitBtn = document.getElementById('checkoutSubmitBtn');
 
@@ -288,14 +289,10 @@ document.getElementById('checkoutModalClose').addEventListener('click', closeChe
 checkoutOverlay.addEventListener('click', (e) => { if (e.target === checkoutOverlay) closeCheckout(); });
 
 function openCheckout() {
-  const hasCustom = cart.some((l) => findProduct(l.id)?.isCustom);
-  checkoutAckRow.hidden = !hasCustom;
-  document.getElementById('co-ack').required = hasCustom;
-
   checkoutSummary.innerHTML = cart.map((l) => {
     const p = findProduct(l.id);
     if (!p) return '';
-    return `<div class="checkout-summary-line"><span>${l.qty} × ${p.name} (${COLOR_LABEL[l.color]})</span><span>${fmtPrice(p.price * l.qty)}</span></div>`;
+    return `<div class="checkout-summary-line"><span>${l.qty} × ${escapeHtml(p.name)} (${COLOR_LABEL[l.color]})</span><span>${fmtPrice(p.price * l.qty)}</span></div>`;
   }).join('') + `<div class="checkout-summary-total"><span>Totale</span><span>${fmtPrice(cartSubtotal())}</span></div>`;
 
   checkoutFormNote.textContent = '';
@@ -316,9 +313,8 @@ checkoutForm.addEventListener('submit', async (e) => {
     checkoutFormNote.classList.add('is-error');
     return;
   }
-  const hasCustom = !checkoutAckRow.hidden;
-  if (hasCustom && !document.getElementById('co-ack').checked) {
-    checkoutFormNote.textContent = 'Conferma di aver compreso le condizioni sul diritto di recesso per i pezzi su misura.';
+  if (!document.getElementById('co-ack').checked) {
+    checkoutFormNote.textContent = 'Conferma di aver compreso che il tuo ordine è realizzato su misura per te.';
     checkoutFormNote.classList.add('is-error');
     return;
   }
@@ -337,7 +333,7 @@ checkoutForm.addEventListener('submit', async (e) => {
     notes: document.getElementById('co-notes').value.trim(),
     items,
     subtotalCents,
-    personalizationAck: hasCustom,
+    personalizationAck: true,
   };
 
   checkoutSubmitBtn.disabled = true;
@@ -408,6 +404,7 @@ document.getElementById('customForm').addEventListener('submit', async (e) => {
     name: document.getElementById('cf-name').value.trim(),
     email: document.getElementById('cf-email').value.trim(),
     idea: document.getElementById('cf-idea').value.trim(),
+    productLink: document.getElementById('cf-link').value.trim(),
   };
   try {
     if (configured) await createQuoteRequest(data);
@@ -421,8 +418,8 @@ document.getElementById('customForm').addEventListener('submit', async (e) => {
   }
 });
 
-/* ---------- Newsletter form (client-side only, nessun invio reale) ---------- */
-document.getElementById('newsletterForm').addEventListener('submit', (e) => {
+/* ---------- Newsletter form ---------- */
+document.getElementById('newsletterForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const note = document.getElementById('newsletterNote');
   const input = document.getElementById('nl-email');
@@ -431,9 +428,16 @@ document.getElementById('newsletterForm').addEventListener('submit', (e) => {
     note.classList.add('is-error');
     return;
   }
-  note.classList.remove('is-error');
-  note.textContent = 'Iscrizione confermata, a presto!';
-  input.value = '';
+  try {
+    if (configured) await subscribeNewsletter(input.value.trim());
+    note.classList.remove('is-error');
+    note.textContent = 'Iscrizione confermata, a presto!';
+    input.value = '';
+  } catch (err) {
+    console.error(err);
+    note.classList.add('is-error');
+    note.textContent = 'Si è verificato un errore, riprova tra poco.';
+  }
 });
 
 /* ---------- Toast ---------- */

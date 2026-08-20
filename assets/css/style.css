@@ -370,6 +370,20 @@ p{ margin: 0 0 1em; color: var(--text-dim); }
 .checkout-payment-hint{ font-size:.76rem; color: var(--text-faint); margin: 14px 0 0; text-align:center; }
 .success-detail{ font-size:.84rem; color: var(--text-faint); margin-top:-8px; }
 
+.product-custom-note{
+  font-size:.74rem; color: var(--gold); opacity:.85; margin: -8px 0 14px; font-style: italic;
+}
+.modal-custom-note{
+  font-size:.82rem; color: var(--text-dim); background: rgba(244,192,100,0.08);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 18px;
+}
+.label-optional{ color: var(--text-faint); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.checkout-custom-callout{
+  background: rgba(244,192,100,0.08); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 12px 14px; margin: 14px 0; font-size:.82rem; color: var(--text-dim);
+}
+.checkout-custom-callout strong{ color: var(--gold-soft); }
+
 /* ============ Testimonials ============ */
 .testimonial-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
 .testimonial-card{
@@ -411,6 +425,8 @@ p{ margin: 0 0 1em; color: var(--text-dim); }
   background: var(--bg); border:1px solid var(--border-soft); color: var(--text);
 }
 .newsletter-inner .form-note{ grid-column: 2; text-align:right; margin-top:-14px; }
+.newsletter-consent{ grid-column: 2; font-size:.72rem; color: var(--text-faint); text-align:right; margin: 6px 0 0; }
+.newsletter-consent a{ color: var(--text-faint); text-decoration: underline; }
 
 /* ============ Footer ============ */
 .site-footer{ background: var(--bg-alt); border-top: 1px solid var(--border-soft); padding: 64px 0 0; }
@@ -578,6 +594,7 @@ p{ margin: 0 0 1em; color: var(--text-dim); }
   .newsletter-inner{ grid-template-columns: 1fr; text-align:center; }
   .newsletter-form{ justify-content:center; }
   .newsletter-inner .form-note{ grid-column: 1; text-align:center; }
+  .newsletter-consent{ grid-column: 1; text-align:center; }
   .modal-body{ grid-template-columns: 1fr; }
   .modal-media{ border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 34px; }
 }

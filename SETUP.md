@@ -2,7 +2,9 @@
 
 Il sito e la dashboard sono già scritti e funzionanti in modalità dimostrativa. Per renderli reali (ordini veri, prodotti modificabili, dashboard protetta) serve collegare un progetto Firebase gratuito, sul tuo account **ledmagicoshop@gmail.com**. Questo passaggio richiede il tuo login personale, quindi va fatto da te: qui sotto trovi ogni singolo click.
 
-Tempo richiesto: ~10 minuti. Nessuna carta di credito necessaria.
+Tempo richiesto: ~10 minuti (+ 5 minuti per le email automatiche, punto 10). Nessuna carta di credito necessaria.
+
+> **Hai già seguito questa guida in precedenza?** Le regole di sicurezza del database sono cambiate (nuove collezioni per email e iscritti newsletter): torna al **punto 4** e incolla di nuovo il contenuto aggiornato di `firestore.rules`, poi prosegui dal **punto 10** per attivare le email.
 
 ---
 
@@ -84,7 +86,45 @@ ADMIN_EMAIL=ledmagicoshop@gmail.com ADMIN_PASSWORD='la-tua-password' node script
 
 ---
 
+## 10. Attiva le email automatiche (gratis, da ledmagicoshop@gmail.com)
+
+Le email (conferma ordine, aggiornamenti di stato, richiesta assistenza/recensione post-consegna, benvenuto newsletter, annunci nuovi prodotti) partono da un piccolo script gratuito collegato **allo stesso account Google** — non serve nessun altro servizio o account esterno.
+
+1. Vai su **[script.google.com](https://script.google.com)**, accedi con **ledmagicoshop@gmail.com**, e crea un **Nuovo progetto**. Chiamalo `LedMagico Mailer`.
+2. Cancella il contenuto del file `Codice.gs` di default e incolla al suo posto tutto il contenuto di [google-apps-script/Code.gs](google-apps-script/Code.gs) di questo progetto.
+3. In alto a sinistra, clicca l'icona ⚙️ **Impostazioni progetto** → spunta **"Mostra file manifest appsscript.json nell'editor"**.
+4. Torna nell'editor, apri il file `appsscript.json` che è comparso, e sostituisci tutto il contenuto con quello di [google-apps-script/appsscript.json](google-apps-script/appsscript.json) di questo progetto.
+5. Torna su `Code.gs` e modifica le prime righe (blocco `CONFIG`):
+   - `FIREBASE_PROJECT_ID`: lo stesso Project ID che hai usato in `assets/js/firebase-config.js`.
+   - `SITE_URL`: `https://francescocampanelli5.github.io/ledmagico` (senza slash finale).
+6. Salva (icona 💾).
+7. Nella barra in alto, scegli la funzione **`testInvioEmail`** dal menu a tendina e clicca **▶ Esegui**.
+8. Google ti chiederà di autorizzare lo script (**Autorizza accesso** → scegli ledmagicoshop@gmail.com → **Avanzate** → **Vai a LedMagico Mailer (non sicuro)** → **Consenti**). È normale: è il tuo stesso script, su cui hai pieno controllo.
+9. Controlla la casella ledmagicoshop@gmail.com: dovresti aver ricevuto l'email di prova. Se sì, tutto funziona.
+10. Ora rendilo automatico: menu laterale **Attivazioni** (icona a orologio) → **+ Aggiungi trigger** →
+    - Funzione da eseguire: `runLedMagicoMailer`
+    - Origine evento: **Basato sul tempo**
+    - Tipo: **Timer minuti** → **Ogni 10 minuti**
+    - Salva.
+
+Da questo momento, ogni ordine, richiesta o cambio di stato genera automaticamente l'email corrispondente entro ~10 minuti, inviata da ledmagicoshop@gmail.com. Le email "di assistenza/recensione" partono da sole 9 giorni dopo che segni un ordine come "Spedito" in dashboard.
+
+**Costo:** zero, per sempre — Google Apps Script è gratuito senza limiti di piano per un volume come questo (quota gratuita: 20.000 chiamate/giorno, invio email nei limiti giornalieri del tuo Gmail).
+
+---
+
+## Il "database": dove vedere davvero i tuoi dati
+
+Hai due modi per vedere i dati del negozio, entrambi protetti da credenziali tue e solo tue:
+
+1. **`/admin` sul tuo sito** ([francescocampanelli5.github.io/ledmagico/admin/](https://francescocampanelli5.github.io/ledmagico/admin/)) — l'interfaccia pensata per l'uso quotidiano: prodotti, ordini, richieste, iscritti, tutto leggibile e modificabile con pochi click. Login: l'email/password create al punto 6.
+2. **Firebase Console → Firestore Database** ([console.firebase.google.com](https://console.firebase.google.com), progetto → Firestore Database → scheda Dati) — la vista "grezza" del database vero e proprio, utile se un giorno vuoi controllare o correggere qualcosa a basso livello. Accesso: il tuo login Google (ledmagicoshop@gmail.com).
+
+Per il lavoro di tutti i giorni ti consiglio `/admin`: è quella costruita apposta per essere semplice.
+
+---
+
 ## Prossimi passi facoltativi
 
 - **Dati legali reali**: apri [legal/termini.html](legal/termini.html), [legal/privacy.html](legal/privacy.html) e [legal/recesso.html](legal/recesso.html) e sostituisci i campi `[TRA PARENTESI QUADRE]` con i dati reali della tua attività (ragione sociale, P.IVA, indirizzo). Fai verificare il testo finale da un commercialista o legale prima di iniziare a vendere davvero.
-- **Pagamenti automatici online (Stripe) ed email automatiche**: al momento gli ordini vengono raccolti regolarmente nel database e li gestisci manualmente (contatti il cliente via email per il pagamento, es. bonifico). Automatizzare pagamenti ed email richiede un piccolo servizio aggiuntivo (Firebase da solo, sul piano gratuito, non può contattare servizi esterni come Stripe). Quando sei pronta/o, dimmelo: lo aggiungiamo senza toccare il resto.
+- **Pagamenti automatici online (Stripe)**: al momento gli ordini vengono raccolti regolarmente nel database e li gestisci manualmente (contatti il cliente via email per il pagamento, es. bonifico — l'email parte già in automatico). Attivare pagamenti automatici richiede un piccolo servizio aggiuntivo. Quando sei pronta/o, dimmelo: lo aggiungiamo senza toccare il resto.

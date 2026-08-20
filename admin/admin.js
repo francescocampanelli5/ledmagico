@@ -1,10 +1,12 @@
 /* ============ LedMagico — Admin dashboard logic ============ */
 import { ICONS, CATEGORY_LABEL } from '../assets/js/icons.js';
+import { escapeHtml, safeUrl } from '../assets/js/sanitize.js';
 import {
   configured, watchAuth, login, logout,
-  watchAllProducts, createProduct, updateProduct, deleteProduct,
+  watchAllProducts, createProduct, updateProduct, deleteProduct, announceProduct,
   watchOrders, updateOrderStatus,
   watchQuotes, updateQuoteStatus,
+  watchSubscribers,
   compressImageToDataUri,
 } from '../assets/js/firebase-app.js';
 
@@ -74,6 +76,7 @@ function initDashboard() {
   initProducts();
   initOrders();
   initQuotes();
+  initSubscribers();
 }
 
 /* ================= PRODOTTI ================= */
@@ -121,13 +124,14 @@ function renderProductsTable(list) {
   tbody.innerHTML = list.map((p) => `
     <tr>
       <td><div class="admin-thumb">${p.image ? `<img src="${p.image}" alt="">` : (ICONS[p.iconKey] || ICONS.eiffel)()}</div></td>
-      <td><strong>${p.name}</strong>${p.isCustom ? ' <span class="status-pill">su misura</span>' : ''}</td>
-      <td>${CATEGORY_LABEL[p.category] || p.category}</td>
+      <td><strong>${escapeHtml(p.name)}</strong></td>
+      <td>${escapeHtml(CATEGORY_LABEL[p.category] || p.category)}</td>
       <td>${fmtPrice(p.priceCents)}</td>
       <td><span class="status-pill ${p.active ? 'active' : 'inactive'}">${p.active ? 'Visibile' : 'Nascosto'}</span></td>
       <td>
         <div class="row-actions">
           <button data-edit="${p.id}">Modifica</button>
+          <button data-announce="${p.id}" title="Invia un'email agli iscritti alla newsletter per presentare questo prodotto">📣 Annuncia</button>
         </div>
       </td>
     </tr>
@@ -135,6 +139,18 @@ function renderProductsTable(list) {
 
   tbody.querySelectorAll('[data-edit]').forEach((btn) => {
     btn.addEventListener('click', () => openProductForm(btn.dataset.edit));
+  });
+  tbody.querySelectorAll('[data-announce]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Inviare un\'email di annuncio a tutti gli iscritti alla newsletter per questo prodotto?')) return;
+      try {
+        await announceProduct(btn.dataset.announce);
+        showToast('Annuncio in coda: partirà entro pochi minuti');
+      } catch (err) {
+        console.error(err);
+        alert('Errore durante l\'invio dell\'annuncio.');
+      }
+    });
   });
 }
 
@@ -168,6 +184,7 @@ function openProductForm(id) {
   } else {
     document.getElementById('productFormTitle').textContent = 'Nuovo prodotto';
     document.getElementById('pf-active').checked = true;
+    document.getElementById('pf-custom').checked = true;
   }
 
   document.getElementById('productEditOverlay').classList.add('is-open');
@@ -259,15 +276,15 @@ function renderOrdersTable(list) {
   empty.hidden = true;
 
   tbody.innerHTML = list.map((o) => {
-    const itemsSummary = (o.items || []).map((it) => `${it.qty}× ${it.name}`).join(', ');
+    const itemsSummary = (o.items || []).map((it) => `${it.qty}× ${escapeHtml(it.name)}`).join(', ');
     return `
     <tr>
-      <td><strong>${o.id}</strong>${o.personalizationAck ? ' <span class="status-pill">su misura</span>' : ''}</td>
-      <td>${o.customerName || ''}<br><span style="color:var(--text-faint);font-size:.78rem;">${o.customerEmail || ''}</span></td>
+      <td><strong>${escapeHtml(o.id)}</strong></td>
+      <td>${escapeHtml(o.customerName || '')}<br><span style="color:var(--text-faint);font-size:.78rem;">${escapeHtml(o.customerEmail || '')}</span></td>
       <td>${itemsSummary}</td>
       <td>${fmtPrice(o.subtotalCents || 0)}</td>
       <td>
-        <select class="status-select" data-order="${o.id}">
+        <select class="status-select" data-order="${o.id}" data-email="${escapeHtml(o.customerEmail || '')}">
           ${Object.entries(ORDER_STATUSES).map(([k, v]) => `<option value="${k}" ${o.status === k ? 'selected' : ''}>${v}</option>`).join('')}
         </select>
       </td>
@@ -276,10 +293,10 @@ function renderOrdersTable(list) {
     </tr>
     <tr class="order-details-row" id="details-${o.id}" hidden>
       <td colspan="7">
-        <strong>Indirizzo:</strong> ${o.shippingAddress || '—'}<br>
-        <strong>Telefono:</strong> ${o.customerPhone || '—'}<br>
-        <strong>Note:</strong> ${o.notes || '—'}<br>
-        <strong>Articoli:</strong> ${(o.items || []).map((it) => `${it.qty}× ${it.name} (${it.colorLabel || it.color})`).join(', ')}
+        <strong>Indirizzo:</strong> ${escapeHtml(o.shippingAddress || '—')}<br>
+        <strong>Telefono:</strong> ${escapeHtml(o.customerPhone || '—')}<br>
+        <strong>Note:</strong> ${escapeHtml(o.notes || '—')}<br>
+        <strong>Articoli:</strong> ${(o.items || []).map((it) => `${it.qty}× ${escapeHtml(it.name)} (${escapeHtml(it.colorLabel || it.color)})`).join(', ')}
       </td>
     </tr>`;
   }).join('');
@@ -293,7 +310,7 @@ function renderOrdersTable(list) {
   tbody.querySelectorAll('[data-order]').forEach((sel) => {
     sel.addEventListener('change', async () => {
       try {
-        await updateOrderStatus(sel.dataset.order, sel.value);
+        await updateOrderStatus(sel.dataset.order, sel.value, sel.dataset.email);
         showToast('Stato ordine aggiornato');
       } catch (err) {
         console.error(err);
@@ -328,9 +345,9 @@ function renderQuotesTable(list) {
 
   tbody.innerHTML = list.map((q) => `
     <tr>
-      <td>${q.name}</td>
-      <td><a href="mailto:${q.email}" style="color:var(--gold-soft);">${q.email}</a></td>
-      <td style="max-width:320px;">${q.idea}</td>
+      <td>${escapeHtml(q.name)}</td>
+      <td><a href="mailto:${escapeHtml(q.email)}" style="color:var(--gold-soft);">${escapeHtml(q.email)}</a></td>
+      <td style="max-width:320px;">${escapeHtml(q.idea)}${safeUrl(q.productLink) ? `<br><a href="${escapeHtml(safeUrl(q.productLink))}" target="_blank" rel="noopener noreferrer" style="color:var(--gold-soft);font-size:.78rem;">🔗 link prodotto</a>` : ''}</td>
       <td>${fmtDate(q.createdAt)}</td>
       <td>
         <select class="status-select" data-quote="${q.id}">
@@ -352,6 +369,37 @@ function renderQuotesTable(list) {
       }
     });
   });
+}
+
+/* ================= ISCRITTI NEWSLETTER ================= */
+function initSubscribers() {
+  watchSubscribers(
+    (list) => renderSubscribersTable(list),
+    (err) => console.error('Errore iscritti', err)
+  );
+}
+
+function renderSubscribersTable(list) {
+  const tbody = document.getElementById('subscribersTbody');
+  const empty = document.getElementById('subscribersEmpty');
+  const countEl = document.getElementById('subscribersCount');
+  const active = list.filter((s) => !s.unsubscribed);
+  if (countEl) countEl.textContent = `${active.length} iscritti attivi`;
+
+  if (list.length === 0) {
+    tbody.innerHTML = '';
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+
+  tbody.innerHTML = list.map((s) => `
+    <tr>
+      <td>${escapeHtml(s.email)}</td>
+      <td>${fmtDate(s.createdAt)}</td>
+      <td><span class="status-pill ${s.unsubscribed ? 'inactive' : 'active'}">${s.unsubscribed ? 'Disiscritto' : 'Iscritto'}</span></td>
+    </tr>
+  `).join('');
 }
 
 /* ---------- Toast ---------- */
