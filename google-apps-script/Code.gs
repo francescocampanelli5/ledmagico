@@ -16,10 +16,10 @@
 // ========================= CONFIGURAZIONE =========================
 // Sostituisci questi valori con quelli del tuo progetto Firebase e del sito.
 const CONFIG = {
-  FIREBASE_PROJECT_ID: 'INSERISCI_PROJECT_ID', // stesso projectId di assets/js/firebase-config.js
+  FIREBASE_PROJECT_ID: 'ledmagico-fe309', // stesso projectId di assets/js/firebase-config.js
   SHOP_EMAIL: 'ledmagicoshop@gmail.com',
   SHOP_NAME: 'LedMagico',
-  SITE_URL: 'https://tuo-utente.github.io/ledmagico', // URL pubblico del sito, senza slash finale
+  SITE_URL: 'https://francescocampanelli5.github.io/ledmagico', // URL pubblico del sito, senza slash finale
   FOLLOW_UP_AFTER_DAYS: 9, // giorni dopo la spedizione per l'email di assistenza/recensione
 };
 // =====================================================================

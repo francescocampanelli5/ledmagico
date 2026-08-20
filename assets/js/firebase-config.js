@@ -8,12 +8,12 @@
 // Istruzioni complete in SETUP.md.
 
 export const firebaseConfig = {
-  apiKey: 'INSERISCI_API_KEY',
-  authDomain: 'INSERISCI_PROJECT_ID.firebaseapp.com',
-  projectId: 'INSERISCI_PROJECT_ID',
-  storageBucket: 'INSERISCI_PROJECT_ID.appspot.com',
-  messagingSenderId: 'INSERISCI_SENDER_ID',
-  appId: 'INSERISCI_APP_ID',
+  apiKey: 'AIzaSyAB0BYgoOSGs-wetjCZNh44N6NB_wyYXhc',
+  authDomain: 'ledmagico-fe309.firebaseapp.com',
+  projectId: 'ledmagico-fe309',
+  storageBucket: 'ledmagico-fe309.firebasestorage.app',
+  messagingSenderId: '403417384357',
+  appId: '1:403417384357:web:15a5c2735dd7888e36d44c',
 };
 
 export const isFirebaseConfigured = () =>
