@@ -65,7 +65,10 @@
     <section class="admin-panel is-active" id="panel-products">
       <div class="admin-panel-head">
         <h2>Prodotti</h2>
-        <button class="btn btn-primary btn-sm" id="newProductBtn">+ Nuovo prodotto</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" id="importDemoBtn" hidden>Importa gli 8 modelli dimostrativi</button>
+          <button class="btn btn-primary btn-sm" id="newProductBtn">+ Nuovo prodotto</button>
+        </div>
       </div>
       <div class="admin-table-wrap">
         <table class="admin-table" id="productsTable">
@@ -73,7 +76,7 @@
           <tbody id="productsTbody"></tbody>
         </table>
       </div>
-      <p class="admin-empty" id="productsEmpty" hidden>Nessun prodotto ancora. Aggiungine uno per iniziare.</p>
+      <p class="admin-empty" id="productsEmpty" hidden>Nessun prodotto ancora. Aggiungine uno per iniziare, o importa il catalogo dimostrativo qui sopra.</p>
     </section>
 
     <!-- ---- ORDINI ---- -->
@@ -196,6 +199,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script type="module" src="admin.js?v=2"></script>
+<script type="module" src="admin.js?v=3"></script>
 </body>
 </html>

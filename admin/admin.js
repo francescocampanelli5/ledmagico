@@ -19,6 +19,17 @@ const ORDER_STATUSES = {
 };
 const QUOTE_STATUSES = { nuova: 'Nuova', risposta: 'Risposto' };
 
+const DEMO_PRODUCTS = [
+  { name: 'Torre Eiffel LED', category: 'monumenti', price: 49, shortDesc: 'La dama di ferro parigina, reinterpretata in legno e luce calda.', fullDesc: 'Una replica in scala della Torre Eiffel, intagliata a mano in legno chiaro e cablata con oltre 40 micro LED lungo la struttura reticolare. Un piccolo faro che trasforma una mensola in uno scorcio di Parigi al tramonto.', specs: ['Altezza 26 cm · base 12x12 cm', 'Legno di faggio e metallo verniciato', '40+ micro LED integrati', 'Alimentazione USB, cavo 1.5 m incluso'], iconKey: 'eiffel' },
+  { name: 'Skyline Milano LED', category: 'monumenti', price: 59, shortDesc: 'Il profilo della città che non dorme mai, acceso sulla tua libreria.', fullDesc: 'Uno skyline stilizzato dei grattacieli milanesi, in resina opaca con finestre luminose realizzate una a una. Ogni edificio ha un circuito indipendente per un effetto profondità realistico.', specs: ['Larghezza 34 cm · altezza 22 cm', 'Resina opaca antiriflesso', '60+ finestre LED indipendenti', 'Alimentazione USB o power bank'], iconKey: 'skyline' },
+  { name: 'Barca a Vela LED', category: 'barche', price: 39, shortDesc: 'Vele che catturano la luce come catturano il vento.', fullDesc: 'Uno scafo in legno di cedro con vele in tessuto naturale, illuminato da una striscia LED che corre lungo l\'alberatura. Perfetta su una mensola vicino alla finestra, come se fosse appena rientrata in porto.', specs: ['Altezza 18 cm · lunghezza 24 cm', 'Scafo in cedro, vele in cotone trattato', 'Striscia LED lungo l\'albero maestro', 'Base espositiva in legno inclusa'], iconKey: 'barca' },
+  { name: 'Nave Pirata LED', category: 'barche', price: 65, shortDesc: 'Due alberi, vele scure e una lanterna che non si spegne mai.', fullDesc: 'Un vascello corsaro dal dettaglio ricco: ponte in legno scuro, vele dipinte a mano e lanterne LED a bordo che si accendono in bianco caldo o RGB. Il pezzo preferito da chi ama le storie di mare.', specs: ['Altezza 24 cm · lunghezza 30 cm', 'Legno scuro trattato a mano', '12 punti luce distribuiti sul ponte', 'Compatibile con telecomando RGB'], iconKey: 'pirata' },
+  { name: 'Castello Incantato LED', category: 'fantasia', price: 72, shortDesc: 'Torri, bandiere e finestre che si accendono una a una.', fullDesc: 'Un castello da fiaba con cinque torri, ognuna con la propria finestra luminosa. Il mattone è riprodotto a rilievo in resina e dipinto a mano per un effetto materico che cattura la luce dei LED interni.', specs: ['Altezza 28 cm · base 20x20 cm', 'Resina a rilievo dipinta a mano', '18 punti luce, 5 circuiti indipendenti', 'Alimentazione USB, timer integrato'], iconKey: 'castello' },
+  { name: 'Presepe LED con Acqua', category: 'presepi', price: 89, shortDesc: 'Il ruscello scorre davvero, la stella cometa non si spegne mai.', fullDesc: 'Il nostro pezzo più amato: una capanna in legno con un vero micro-circuito ad acqua che simula un ruscello, illuminato dal basso con LED blu. La stella cometa in alto brilla di bianco caldo per tutta la notte.', specs: ['Altezza 20 cm · base 30x22 cm', 'Legno naturale e resina trasparente', 'Pompa ad acqua silenziosa inclusa', 'Stella cometa e faretti a LED caldo'], iconKey: 'presepe' },
+  { name: 'Faro LED', category: 'barche', price: 35, shortDesc: 'Un raggio di luce rotante, come sulla costa vera.', fullDesc: 'Un faro marittimo in legno tornito a mano, con lanterna superiore dotata di LED rotante che simula il raggio di luce reale. Le strisce rosse sono dipinte a mano, una per una.', specs: ['Altezza 21 cm · base Ø 9 cm', 'Legno tornito, base in pietra ricomposta', 'LED rotante nella lanterna superiore', 'Alimentazione USB'], iconKey: 'faro' },
+  { name: 'Mongolfiera LED', category: 'fantasia', price: 45, shortDesc: 'Sospesa in volo, illuminata dall\'interno come al mattino presto.', fullDesc: 'Una mongolfiera in tessuto rigido e cesto in vimini intrecciato a mano, con un LED interno che replica il bagliore del bruciatore. Da appendere o appoggiare, regala movimento a qualsiasi stanza.', specs: ['Altezza 19 cm · diametro pallone 14 cm', 'Tessuto rigido dipinto a mano', 'Cesto in vimini naturale intrecciato', 'Gancio per sospensione incluso'], iconKey: 'mongolfiera' },
+].map((p) => ({ ...p, isCustom: true, active: true, image: null }));
+
 const fmtPrice = (cents) => `€${(cents / 100).toFixed(2)}`;
 const fmtDate = (ts) => {
   if (!ts) return '—';
@@ -110,11 +121,34 @@ function initProducts() {
 
   document.getElementById('productForm').addEventListener('submit', onSaveProduct);
   document.getElementById('productDeleteBtn').addEventListener('click', onDeleteProduct);
+
+  document.getElementById('importDemoBtn').addEventListener('click', onImportDemoProducts);
+}
+
+async function onImportDemoProducts() {
+  if (!confirm(`Importare ${DEMO_PRODUCTS.length} modelli dimostrativi nel catalogo? Potrai poi modificarli o eliminarli liberamente.`)) return;
+  const btn = document.getElementById('importDemoBtn');
+  btn.disabled = true;
+  let done = 0;
+  for (const product of DEMO_PRODUCTS) {
+    btn.textContent = `Importazione... (${done + 1}/${DEMO_PRODUCTS.length})`;
+    try {
+      await createProduct(product);
+      done += 1;
+    } catch (err) {
+      console.error('Errore importando', product.name, err);
+    }
+  }
+  btn.disabled = false;
+  btn.textContent = 'Importa gli 8 modelli dimostrativi';
+  showToast(`${done} prodotti importati`);
 }
 
 function renderProductsTable(list) {
   const tbody = document.getElementById('productsTbody');
   const empty = document.getElementById('productsEmpty');
+  const importBtn = document.getElementById('importDemoBtn');
+  importBtn.hidden = list.length > 0;
   if (list.length === 0) {
     tbody.innerHTML = '';
     empty.hidden = false;
