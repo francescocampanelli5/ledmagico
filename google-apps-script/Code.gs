@@ -21,6 +21,9 @@ const CONFIG = {
   SHOP_NAME: 'LedMagico',
   SITE_URL: 'https://francescocampanelli5.github.io/ledmagico', // URL pubblico del sito, senza slash finale
   FOLLOW_UP_AFTER_DAYS: 9, // giorni dopo la spedizione per l'email di assistenza/recensione
+  BANK_IBAN: 'INSERISCI_IBAN',
+  BANK_HOLDER: 'INSERISCI_INTESTATARIO',
+  BANK_NAME: '', // opzionale, es. "Intesa Sanpaolo" — lascia vuoto se non vuoi mostrarlo
 };
 // =====================================================================
 
@@ -141,6 +144,28 @@ function scheduleFollowUps_() {
 
 // ========================= TEMPLATE + INVIO =========================
 
+function bankConfigured_() {
+  return !CONFIG.BANK_IBAN.startsWith('INSERISCI_') && !CONFIG.BANK_HOLDER.startsWith('INSERISCI_');
+}
+
+function bankInstructionsHtml_(order, orderId) {
+  if (!bankConfigured_()) {
+    return `<p>Ti contatteremo a breve a questo indirizzo con le istruzioni per completare il pagamento (bonifico bancario).</p>`;
+  }
+  const amount = ((order.subtotalCents || 0) / 100).toFixed(2);
+  return `
+    <div style="background:#0a0c16;border:1px solid rgba(244,201,120,0.25);border-radius:10px;padding:16px 18px;margin:16px 0;">
+      <p style="margin:0 0 8px;font-weight:bold;color:#f4c064;">Come pagare</p>
+      <p style="margin:0 0 4px;">Bonifico bancario a:</p>
+      <p style="margin:0 0 4px;">IBAN: <strong>${escapeHtml_(CONFIG.BANK_IBAN)}</strong></p>
+      <p style="margin:0 0 4px;">Intestatario: <strong>${escapeHtml_(CONFIG.BANK_HOLDER)}</strong></p>
+      ${CONFIG.BANK_NAME ? `<p style="margin:0 0 4px;">Banca: ${escapeHtml_(CONFIG.BANK_NAME)}</p>` : ''}
+      <p style="margin:0 0 4px;">Importo: <strong>€${amount}</strong></p>
+      <p style="margin:0;">Causale: <strong>${escapeHtml_(orderId)}</strong> (indicala sempre, ci serve per riconoscere il tuo pagamento)</p>
+    </div>
+    <p>Appena il bonifico risulta arrivato confermiamo l'ordine e iniziamo la lavorazione — riceverai un'altra email.</p>`;
+}
+
 function sendOrderReceived_(item) {
   const order = firestoreGetDecoded_(`orders/${item.refId}`);
   if (!order) return;
@@ -153,7 +178,8 @@ function sendOrderReceived_(item) {
      <p>Grazie per aver scelto ${CONFIG.SHOP_NAME}! Abbiamo ricevuto il tuo ordine <strong>${escapeHtml_(item.refId)}</strong>:</p>
      <ul>${itemsHtml}</ul>
      <p><strong>Totale: €${((order.subtotalCents || 0) / 100).toFixed(2)}</strong></p>
-     <p>Il tuo pezzo verrà ora procurato e cablato su misura per te. Ti contatteremo a breve a questo indirizzo con le istruzioni per completare il pagamento (bonifico bancario).</p>
+     <p>Il tuo pezzo verrà ora procurato e cablato su misura per te.</p>
+     ${bankInstructionsHtml_(order, item.refId)}
      <p>Qualsiasi domanda, rispondi pure a questa email.</p>`
   );
   GmailApp.sendEmail(order.customerEmail, `Ordine ricevuto — ${item.refId}`, plainFallback_(html), {

@@ -94,7 +94,7 @@ Le email (conferma ordine, aggiornamenti di stato, richiesta assistenza/recensio
 2. Cancella il contenuto del file `Codice.gs` di default e incolla al suo posto tutto il contenuto di [google-apps-script/Code.gs](google-apps-script/Code.gs) di questo progetto.
 3. In alto a sinistra, clicca l'icona ⚙️ **Impostazioni progetto** → spunta **"Mostra file manifest appsscript.json nell'editor"**.
 4. Torna nell'editor, apri il file `appsscript.json` che è comparso, e sostituisci tutto il contenuto con quello di [google-apps-script/appsscript.json](google-apps-script/appsscript.json) di questo progetto.
-5. Il blocco `CONFIG` in cima al file è già precompilato con il tuo Project ID e l'URL del sito — non serve modificare nulla, controlla solo che corrispondano.
+5. Il blocco `CONFIG` in cima al file è già precompilato con il tuo Project ID e l'URL del sito. Se mi hai già dato i dati del bonifico, anche `BANK_IBAN` e `BANK_HOLDER` sono già compilati — l'email di conferma ordine mostrerà automaticamente IBAN, intestatario e causale (il numero d'ordine). Se non li hai ancora dati, l'email userà un messaggio generico ("ti contatteremo con le istruzioni") finché non li aggiungi.
 6. Salva (icona 💾).
 7. Nella barra in alto, scegli la funzione **`testInvioEmail`** dal menu a tendina e clicca **▶ Esegui**.
 8. Google ti chiederà di autorizzare lo script (**Autorizza accesso** → scegli ledmagicoshop@gmail.com → **Avanzate** → **Vai a LedMagico Mailer (non sicuro)** → **Consenti**). È normale: è il tuo stesso script, su cui hai pieno controllo.
