@@ -1,6 +1,6 @@
 /* ============ LedMagico — App logic (storefront) ============ */
 import { ICONS, renderProductMedia, CATEGORY_LABEL, COLOR_LABEL, COLOR_VARS } from './icons.js';
-import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, genOrderId } from './firebase-app.js?v=2';
+import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, getPaymentSettings, genOrderId } from './firebase-app.js?v=3';
 import { escapeHtml } from './sanitize.js';
 
 /* ---------- Dati di fallback (usati finché Firebase non è configurato) ---------- */
@@ -319,10 +319,17 @@ checkoutForm.addEventListener('submit', async (e) => {
     return;
   }
 
-  const items = cart.map((l) => {
-    const p = findProduct(l.id);
-    return { id: p.id, name: p.name, color: l.color, colorLabel: COLOR_LABEL[l.color], qty: l.qty, priceCents: p.priceCents };
-  });
+  const items = cart
+    .filter((l) => findProduct(l.id))
+    .map((l) => {
+      const p = findProduct(l.id);
+      return { id: p.id, name: p.name, color: l.color, colorLabel: COLOR_LABEL[l.color], qty: l.qty, priceCents: p.priceCents };
+    });
+  if (items.length === 0) {
+    checkoutFormNote.textContent = 'I prodotti nel carrello non sono più disponibili. Aggiorna la pagina e riprova.';
+    checkoutFormNote.classList.add('is-error');
+    return;
+  }
   const subtotalCents = items.reduce((s, it) => s + it.priceCents * it.qty, 0);
 
   const orderData = {
@@ -355,8 +362,9 @@ checkoutForm.addEventListener('submit', async (e) => {
 
     document.getElementById('orderNumber').textContent = '#' + orderId;
     document.getElementById('successDetail').textContent = configured
-      ? 'Ti contatteremo a breve via email con le istruzioni per il pagamento.'
+      ? 'Ti abbiamo anche inviato una email di conferma.'
       : 'Questo è un ambiente dimostrativo: Firebase non è ancora configurato, quindi l\'ordine non è stato salvato realmente.';
+    await showPaymentInstructions(orderId);
     document.getElementById('successOverlay').classList.add('is-open');
   } catch (err) {
     console.error(err);
@@ -371,6 +379,39 @@ checkoutForm.addEventListener('submit', async (e) => {
 document.getElementById('successClose').addEventListener('click', () => {
   document.getElementById('successOverlay').classList.remove('is-open');
   document.body.style.overflow = '';
+});
+
+async function showPaymentInstructions(orderId) {
+  const box = document.getElementById('paymentBox');
+  if (!configured) { box.hidden = true; return; }
+  try {
+    const settings = await getPaymentSettings();
+    if (!settings || !settings.iban || !settings.holder) { box.hidden = true; return; }
+    document.getElementById('payIban').textContent = settings.iban;
+    document.getElementById('payHolder').textContent = settings.holder;
+    document.getElementById('payReason').textContent = orderId;
+    const bankRow = document.getElementById('payBankRow');
+    if (settings.bankName) {
+      bankRow.hidden = false;
+      document.getElementById('payBankName').textContent = settings.bankName;
+    } else {
+      bankRow.hidden = true;
+    }
+    box.hidden = false;
+  } catch (err) {
+    console.error('Errore caricamento dati pagamento', err);
+    box.hidden = true;
+  }
+}
+
+document.getElementById('copyIbanBtn').addEventListener('click', async () => {
+  const iban = document.getElementById('payIban').textContent;
+  try {
+    await navigator.clipboard.writeText(iban);
+    showToast('IBAN copiato');
+  } catch (err) {
+    showToast('Impossibile copiare, seleziona il testo manualmente');
+  }
 });
 
 /* ---------- FAQ accordion ---------- */

@@ -458,12 +458,20 @@
     <h3>Ordine ricevuto!</h3>
     <p>Grazie per aver scelto LedMagico. Numero ordine <strong id="orderNumber">#LM-0000</strong>.</p>
     <p id="successDetail" class="success-detail"></p>
+    <div class="payment-box" id="paymentBox" hidden>
+      <p class="payment-box-title">Come pagare — bonifico bancario</p>
+      <div class="payment-row"><span>IBAN</span><strong id="payIban"></strong></div>
+      <div class="payment-row"><span>Intestatario</span><strong id="payHolder"></strong></div>
+      <div class="payment-row" id="payBankRow" hidden><span>Banca</span><strong id="payBankName"></strong></div>
+      <div class="payment-row"><span>Causale</span><strong id="payReason"></strong></div>
+      <button type="button" class="btn btn-ghost btn-sm" id="copyIbanBtn">Copia IBAN</button>
+    </div>
     <button class="btn btn-primary" id="successClose">Continua a esplorare</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<script type="module" src="assets/js/script.js?v=2"></script>
+<script type="module" src="assets/js/script.js?v=3"></script>
 </body>
 </html>

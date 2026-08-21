@@ -88,6 +88,11 @@
 .admin-photo-preview{ margin-top:10px; width:120px; height:120px; border-radius: var(--radius-sm); background: var(--bg); border:1px solid var(--border-soft); display:flex; align-items:center; justify-content:center; overflow:hidden; }
 .admin-photo-preview img, .admin-photo-preview svg{ width:100%; height:100%; object-fit:cover; }
 
+.admin-settings-form{
+  max-width: 480px; background: var(--surface); border:1px solid var(--border-soft);
+  border-radius: var(--radius-md); padding: 26px 28px;
+}
+
 @media (max-width: 700px){
   .admin-form-grid{ grid-template-columns: 1fr; }
   .admin-header{ padding: 14px 16px; }

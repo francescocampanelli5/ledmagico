@@ -7,8 +7,9 @@ import {
   watchOrders, updateOrderStatus,
   watchQuotes, updateQuoteStatus,
   watchSubscribers,
+  getPaymentSettings, savePaymentSettings,
   compressImageToDataUri,
-} from '../assets/js/firebase-app.js?v=2';
+} from '../assets/js/firebase-app.js?v=3';
 
 const ORDER_STATUSES = {
   da_confermare: 'Da confermare',
@@ -88,6 +89,7 @@ function initDashboard() {
   initOrders();
   initQuotes();
   initSubscribers();
+  initSettings();
 }
 
 /* ================= PRODOTTI ================= */
@@ -434,6 +436,39 @@ function renderSubscribersTable(list) {
       <td><span class="status-pill ${s.unsubscribed ? 'inactive' : 'active'}">${s.unsubscribed ? 'Disiscritto' : 'Iscritto'}</span></td>
     </tr>
   `).join('');
+}
+
+/* ================= IMPOSTAZIONI ================= */
+function initSettings() {
+  getPaymentSettings().then((data) => {
+    if (!data) return;
+    document.getElementById('set-iban').value = data.iban || '';
+    document.getElementById('set-holder').value = data.holder || '';
+    document.getElementById('set-bankname').value = data.bankName || '';
+  }).catch((err) => console.error('Errore impostazioni', err));
+
+  document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const note = document.getElementById('settingsNote');
+    const btn = document.getElementById('settingsSaveBtn');
+    btn.disabled = true;
+    try {
+      await savePaymentSettings({
+        iban: document.getElementById('set-iban').value.trim(),
+        holder: document.getElementById('set-holder').value.trim(),
+        bankName: document.getElementById('set-bankname').value.trim(),
+      });
+      note.classList.remove('is-error');
+      note.textContent = 'Impostazioni salvate.';
+      showToast('Impostazioni salvate');
+    } catch (err) {
+      console.error(err);
+      note.classList.add('is-error');
+      note.textContent = 'Errore durante il salvataggio.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
 }
 
 /* ---------- Toast ---------- */

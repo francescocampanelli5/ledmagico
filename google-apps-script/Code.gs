@@ -21,10 +21,10 @@ const CONFIG = {
   SHOP_NAME: 'LedMagico',
   SITE_URL: 'https://francescocampanelli5.github.io/ledmagico', // URL pubblico del sito, senza slash finale
   FOLLOW_UP_AFTER_DAYS: 9, // giorni dopo la spedizione per l'email di assistenza/recensione
-  BANK_IBAN: 'INSERISCI_IBAN',
-  BANK_HOLDER: 'INSERISCI_INTESTATARIO',
-  BANK_NAME: '', // opzionale, es. "Intesa Sanpaolo" — lascia vuoto se non vuoi mostrarlo
 };
+// I dati per il bonifico (IBAN, intestatario, banca) NON stanno qui: si
+// inseriscono dalla dashboard → Impostazioni, e vengono letti automaticamente
+// da Firestore (collezione "settings", documento "payment") a ogni invio.
 // =====================================================================
 
 const FIRESTORE_BASE = () =>
@@ -144,12 +144,13 @@ function scheduleFollowUps_() {
 
 // ========================= TEMPLATE + INVIO =========================
 
-function bankConfigured_() {
-  return !CONFIG.BANK_IBAN.startsWith('INSERISCI_') && !CONFIG.BANK_HOLDER.startsWith('INSERISCI_');
+function getPaymentSettings_() {
+  return firestoreGetDecoded_('settings/payment');
 }
 
 function bankInstructionsHtml_(order, orderId) {
-  if (!bankConfigured_()) {
+  const settings = getPaymentSettings_();
+  if (!settings || !settings.iban || !settings.holder) {
     return `<p>Ti contatteremo a breve a questo indirizzo con le istruzioni per completare il pagamento (bonifico bancario).</p>`;
   }
   const amount = ((order.subtotalCents || 0) / 100).toFixed(2);
@@ -157,9 +158,9 @@ function bankInstructionsHtml_(order, orderId) {
     <div style="background:#0a0c16;border:1px solid rgba(244,201,120,0.25);border-radius:10px;padding:16px 18px;margin:16px 0;">
       <p style="margin:0 0 8px;font-weight:bold;color:#f4c064;">Come pagare</p>
       <p style="margin:0 0 4px;">Bonifico bancario a:</p>
-      <p style="margin:0 0 4px;">IBAN: <strong>${escapeHtml_(CONFIG.BANK_IBAN)}</strong></p>
-      <p style="margin:0 0 4px;">Intestatario: <strong>${escapeHtml_(CONFIG.BANK_HOLDER)}</strong></p>
-      ${CONFIG.BANK_NAME ? `<p style="margin:0 0 4px;">Banca: ${escapeHtml_(CONFIG.BANK_NAME)}</p>` : ''}
+      <p style="margin:0 0 4px;">IBAN: <strong>${escapeHtml_(settings.iban)}</strong></p>
+      <p style="margin:0 0 4px;">Intestatario: <strong>${escapeHtml_(settings.holder)}</strong></p>
+      ${settings.bankName ? `<p style="margin:0 0 4px;">Banca: ${escapeHtml_(settings.bankName)}</p>` : ''}
       <p style="margin:0 0 4px;">Importo: <strong>€${amount}</strong></p>
       <p style="margin:0;">Causale: <strong>${escapeHtml_(orderId)}</strong> (indicala sempre, ci serve per riconoscere il tuo pagamento)</p>
     </div>

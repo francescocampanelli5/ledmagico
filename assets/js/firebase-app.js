@@ -206,6 +206,19 @@ export async function enqueueMail(type, to, refCollection, refId, meta = {}) {
   });
 }
 
+/* ---------------- Impostazioni negozio (es. dati bonifico) ---------------- */
+// Salvate in Firestore (non nel codice) apposta: modificabili dalla dashboard
+// senza mai comparire nel repository pubblico su GitHub.
+
+export async function getPaymentSettings() {
+  const snap = await getDoc(doc(db, 'settings', 'payment'));
+  return snap.exists() ? snap.data() : null;
+}
+
+export async function savePaymentSettings(data) {
+  await setDoc(doc(db, 'settings', 'payment'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
+
 export async function announceProduct(productId) {
   await enqueueMail('product_announcement', 'subscribers', PRODUCTS_COL, productId);
 }
