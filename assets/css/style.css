@@ -25,6 +25,11 @@
 }
 
 *, *::before, *::after{ box-sizing: border-box; }
+/* Garantisce che l'attributo HTML "hidden" nasconda sempre l'elemento,
+   anche quando una regola più specifica altrove imposta un suo display
+   (es. .btn, .admin-setup-notice). Senza questa riga, toggle via
+   `el.hidden = true/false` in JS non avrebbero alcun effetto visivo. */
+[hidden]{ display: none !important; }
 html{ scroll-behavior: smooth; }
 body{
   margin:0;
