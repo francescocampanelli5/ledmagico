@@ -4,13 +4,13 @@ import { escapeHtml, safeUrl } from '../assets/js/sanitize.js';
 import {
   configured, watchAuth, login, logout,
   watchAllProducts, createProduct, updateProduct, deleteProduct, announceProduct,
-  watchOrders, updateOrderStatus,
+  watchOrders, updateOrderStatus, deleteOrder,
   watchQuotes, updateQuoteStatus,
   watchSubscribers,
   getPaymentSettings, savePaymentSettings,
   getHeroSettings, saveHeroSettings,
   compressImageToDataUri,
-} from '../assets/js/firebase-app.js?v=4';
+} from '../assets/js/firebase-app.js?v=5';
 
 const ORDER_STATUSES = {
   da_confermare: 'Da confermare',
@@ -353,7 +353,12 @@ function renderOrdersTable(list) {
         </select>
       </td>
       <td>${fmtDate(o.createdAt)}</td>
-      <td><button class="order-toggle" data-toggle="${o.id}">Dettagli</button></td>
+      <td>
+        <div class="row-actions">
+          <button class="order-toggle" data-toggle="${o.id}">Dettagli</button>
+          <button data-delete-order="${o.id}" title="Elimina definitivamente questo ordine">🗑 Elimina</button>
+        </div>
+      </td>
     </tr>
     <tr class="order-details-row" id="details-${o.id}" hidden>
       <td colspan="7">
@@ -379,6 +384,18 @@ function renderOrdersTable(list) {
       } catch (err) {
         console.error(err);
         alert('Errore durante l\'aggiornamento dello stato.');
+      }
+    });
+  });
+  tbody.querySelectorAll('[data-delete-order]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm(`Eliminare definitivamente l'ordine ${btn.dataset.deleteOrder}? L'azione non è reversibile.`)) return;
+      try {
+        await deleteOrder(btn.dataset.deleteOrder);
+        showToast('Ordine eliminato');
+      } catch (err) {
+        console.error(err);
+        alert('Errore durante l\'eliminazione.');
       }
     });
   });

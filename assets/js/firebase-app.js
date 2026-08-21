@@ -153,6 +153,10 @@ export async function updateOrderStatus(id, status, customerEmail) {
   }
 }
 
+export async function deleteOrder(id) {
+  await deleteDoc(doc(db, ORDERS_COL, id));
+}
+
 /* ---------------- Quote requests ("su misura") ---------------- */
 
 export async function createQuoteRequest(data) {
