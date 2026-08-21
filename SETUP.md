@@ -4,7 +4,7 @@ Il sito e la dashboard sono già scritti e funzionanti in modalità dimostrativa
 
 Tempo richiesto: ~10 minuti (+ 5 minuti per le email automatiche, punto 10). Nessuna carta di credito necessaria.
 
-> **Hai già seguito questa guida in precedenza?** Le regole di sicurezza del database sono cambiate (nuove collezioni per email e iscritti newsletter): torna al **punto 4** e incolla di nuovo il contenuto aggiornato di `firestore.rules`, poi prosegui dal **punto 10** per attivare le email.
+> **Hai già seguito questa guida in precedenza?** Le regole di sicurezza del database sono cambiate di nuovo (nuova collezione `reviews` per le recensioni): torna al **punto 4** e incolla di nuovo il contenuto aggiornato di `firestore.rules`. Non serve rifare gli altri passaggi.
 
 ---
 
@@ -57,9 +57,9 @@ Nota: questa password non passa mai da Claude — la scegli e la inserisci tu di
 
 1. **Authentication → Settings → Authorized domains → Add domain**.
 2. Aggiungi: `francescocampanelli5.github.io`
-3. Se in futuro usi un dominio personalizzato, aggiungi anche quello.
+3. Aggiungi anche: `www.ledmagico.it` (il tuo dominio personalizzato — vedi punto 11 più sotto).
 
-Senza questo passaggio il login alla dashboard non funzionerà da GitHub Pages.
+Senza questo passaggio il login alla dashboard non funzionerà.
 
 ## 8. Popola i prodotti
 
@@ -83,6 +83,11 @@ ADMIN_EMAIL=ledmagicoshop@gmail.com ADMIN_PASSWORD='la-tua-password' node script
 - Fai un ordine di prova dal sito → controlla che compaia in `/admin` → **Ordini**.
 - Invia una richiesta dal modulo "Su misura" → controlla `/admin` → **Richieste su misura**.
 - Modifica un prezzo da `/admin` → controlla che si aggiorni sul sito pubblico (in tempo reale, senza bisogno di ripubblicare nulla).
+
+**Novità aggiunte in dashboard → Impostazioni:**
+- **Link social**: inserisci gli URL di Instagram, Facebook, TikTok, Pinterest, YouTube e WhatsApp — compaiono in automatico nel footer del sito, e il link WhatsApp attiva anche un pulsante flottante per contatto rapido.
+- **Recensioni** (nuova scheda): i clienti possono inviarne una dal sito (pulsante "Lascia la tua recensione" sotto la sezione Recensioni); restano "In attesa" finché non le pubblichi tu da dashboard. Puoi modificarne testo, voto, foto o video in qualsiasi momento.
+- **Tracciamento ordini**: apri i dettagli di un ordine in **Ordini** per inserire corriere, codice e link di tracciamento — verranno inclusi automaticamente nell'email "Il tuo ordine è partito".
 
 ---
 
@@ -108,6 +113,28 @@ Le email (conferma ordine, aggiornamenti di stato, richiesta assistenza/recensio
 Da questo momento, ogni ordine, richiesta o cambio di stato genera automaticamente l'email corrispondente entro ~10 minuti, inviata da ledmagicoshop@gmail.com. Le email "di assistenza/recensione" partono da sole 9 giorni dopo che segni un ordine come "Spedito" in dashboard.
 
 **Costo:** zero, per sempre — Google Apps Script è gratuito senza limiti di piano per un volume come questo (quota gratuita: 20.000 chiamate/giorno, invio email nei limiti giornalieri del tuo Gmail).
+
+---
+
+## 11. Collega il dominio www.ledmagico.it
+
+Ho già preparato il sito lato codice (file `CNAME` nel repository, che dice a GitHub Pages "servi questo sito anche su www.ledmagico.it"). Restano solo due cose da fare **da te**, perché richiedono l'accesso al pannello del tuo dominio, che io non ho:
+
+1. Vai dal fornitore da cui hai comprato `ledmagico.it` (es. Aruba, Register.it, ecc.) → gestione DNS del dominio.
+2. Crea questo record:
+   - **Tipo:** CNAME
+   - **Nome/host:** `www`
+   - **Valore/punta a:** `francescocampanelli5.github.io`
+3. **Opzionale ma consigliato** — per far funzionare anche `ledmagico.it` senza `www` (spesso il fornitore lo chiama "redirect" o "forwarding" del dominio principale): imposta un redirect da `ledmagico.it` a `https://www.ledmagico.it`. Se il tuo fornitore non offre il forwarding, in alternativa crea 4 record **A** sul nome nudo (`@` o vuoto) che puntano a:
+   ```
+   185.199.108.153
+   185.199.109.153
+   185.199.110.153
+   185.199.111.153
+   ```
+4. La propagazione DNS può richiedere da pochi minuti fino a 24-48 ore.
+5. Una volta propagato, vai su **[github.com/francescocampanelli5/ledmagico/settings/pages](https://github.com/francescocampanelli5/ledmagico/settings/pages)**: GitHub rileverà il dominio e, dopo la verifica, comparirà l'opzione **"Enforce HTTPS"** — spuntala per avere il lucchetto verde.
+6. Fammi sapere quando è tutto verificato: a quel punto aggiorno i link nelle email automatiche e nel codice dal vecchio indirizzo `francescocampanelli5.github.io/ledmagico` al nuovo `www.ledmagico.it`.
 
 ---
 

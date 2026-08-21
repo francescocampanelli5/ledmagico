@@ -1,6 +1,6 @@
 /* ============ LedMagico — App logic (storefront) ============ */
 import { ICONS, renderProductMedia, videoEmbedHtml, CATEGORY_LABEL, COLOR_LABEL, COLOR_VARS } from './icons.js?v=2';
-import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, getPaymentSettings, getHeroSettings, getGeneralSettings, genOrderId } from './firebase-app.js?v=5';
+import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, getPaymentSettings, getHeroSettings, getGeneralSettings, getSocialSettings, watchApprovedReviews, createReview, compressImageToDataUri, genOrderId } from './firebase-app.js?v=7';
 import { escapeHtml } from './sanitize.js';
 
 /* ---------- Dati di fallback (usati finché Firebase non è configurato) ---------- */
@@ -14,6 +14,12 @@ const FALLBACK_PRODUCTS = [
   { id: 'faro', name: 'Faro LED', category: 'barche', price: 35, shortDesc: 'Un raggio di luce rotante, come sulla costa vera.', fullDesc: 'Un faro marittimo in legno tornito a mano, con lanterna superiore dotata di LED rotante.', specs: ['Altezza 21 cm · base Ø 9 cm', 'Legno tornito, base in pietra ricomposta'], iconKey: 'faro', isCustom: true },
   { id: 'mongolfiera', name: 'Mongolfiera LED', category: 'fantasia', price: 45, shortDesc: 'Sospesa in volo, illuminata dall\'interno come al mattino presto.', fullDesc: 'Una mongolfiera in tessuto rigido e cesto in vimini intrecciato a mano, con un LED interno.', specs: ['Altezza 19 cm · diametro pallone 14 cm', 'Cesto in vimini naturale intrecciato'], iconKey: 'mongolfiera', isCustom: true },
 ].map((p) => ({ ...p, active: true, priceCents: Math.round(p.price * 100) }));
+
+const FALLBACK_REVIEWS = [
+  { name: 'Marco T.', city: 'Torino', rating: 5, content: 'Ho regalato la Torre Eiffel LED a mia moglie per l\'anniversario. Da quella sera non l\'ha più spenta.' },
+  { name: 'Giulia R.', city: 'Bologna', rating: 5, content: 'Il presepe con l\'acqua vera è un capolavoro. Ogni Natale i miei ospiti restano senza parole davanti al ruscello che scorre.' },
+  { name: 'Davide S.', city: 'Napoli', rating: 5, content: 'Qualità pazzesca per il prezzo. La nave pirata illumina la cameretta di mio figlio ogni sera, ed è lui stesso a spegnerla al mattino.' },
+];
 
 const fmtPrice = (n) => `€${n.toFixed(0)}`;
 
@@ -160,6 +166,7 @@ function renderModal(p) {
 
       <div class="modal-actions">
         <button class="btn btn-primary" id="modalAddBtn">Aggiungi al carrello · ${fmtPrice(p.price)}</button>
+        <button class="btn btn-ghost" id="modalBuyNowBtn">Acquista subito</button>
       </div>
 
       <p class="modal-custom-note">✦ Ogni pezzo viene preparato, illuminato e cablato a mano dopo la conferma dell'ordine: il tuo non esiste ancora finché non lo ordini.</p>
@@ -198,6 +205,12 @@ function renderModal(p) {
     showToast(`${p.name} aggiunta al carrello`);
     closeModal();
     openCart();
+  });
+
+  modalBody.querySelector('#modalBuyNowBtn').addEventListener('click', () => {
+    addToCart(p.id, modalState.color, modalState.qty);
+    closeModal();
+    openCheckout();
   });
 }
 
@@ -288,6 +301,17 @@ document.getElementById('checkoutBtn').addEventListener('click', () => {
 document.getElementById('checkoutModalClose').addEventListener('click', closeCheckout);
 checkoutOverlay.addEventListener('click', (e) => { if (e.target === checkoutOverlay) closeCheckout(); });
 
+const SAVED_CUSTOMER_KEY = 'ledmagico_customer_v1';
+
+function loadSavedCustomer() {
+  try { return JSON.parse(localStorage.getItem(SAVED_CUSTOMER_KEY)) || null; }
+  catch (e) { return null; }
+}
+function saveCustomer(data) {
+  try { localStorage.setItem(SAVED_CUSTOMER_KEY, JSON.stringify(data)); }
+  catch (e) { /* storage non disponibile, non blocca l'ordine */ }
+}
+
 function openCheckout() {
   checkoutSummary.innerHTML = cart.map((l) => {
     const p = findProduct(l.id);
@@ -297,10 +321,32 @@ function openCheckout() {
 
   checkoutFormNote.textContent = '';
   checkoutFormNote.classList.remove('is-error');
+
+  const saved = loadSavedCustomer();
+  const clearBtn = document.getElementById('clearSavedDataBtn');
+  if (saved) {
+    document.getElementById('co-name').value = saved.customerName || '';
+    document.getElementById('co-email').value = saved.customerEmail || '';
+    document.getElementById('co-phone').value = saved.customerPhone || '';
+    document.getElementById('co-address').value = saved.shippingAddress || '';
+    clearBtn.hidden = false;
+  } else {
+    clearBtn.hidden = true;
+  }
+
   closeCart();
   checkoutOverlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
+  const firstField = saved ? document.getElementById('co-notes') : document.getElementById('co-name');
+  setTimeout(() => firstField.focus(), 150);
 }
+
+document.getElementById('clearSavedDataBtn').addEventListener('click', () => {
+  localStorage.removeItem(SAVED_CUSTOMER_KEY);
+  checkoutForm.reset();
+  document.getElementById('clearSavedDataBtn').hidden = true;
+  document.getElementById('co-name').focus();
+});
 function closeCheckout() {
   checkoutOverlay.classList.remove('is-open');
   document.body.style.overflow = '';
@@ -354,6 +400,13 @@ checkoutForm.addEventListener('submit', async (e) => {
       orderId = genOrderId();
       await new Promise((r) => setTimeout(r, 500));
     }
+    saveCustomer({
+      customerName: orderData.customerName,
+      customerEmail: orderData.customerEmail,
+      customerPhone: orderData.customerPhone,
+      shippingAddress: orderData.shippingAddress,
+    });
+
     cart = [];
     saveCart();
     renderCart();
@@ -572,6 +625,143 @@ async function applyContactEmail() {
   }
 }
 applyContactEmail();
+
+/* ---------- Link social + WhatsApp flottante (dashboard → Impostazioni) ---------- */
+async function applySocialLinks() {
+  if (!configured) return;
+  try {
+    const social = await getSocialSettings();
+    if (!social) return;
+    ['instagram', 'facebook', 'tiktok', 'pinterest', 'youtube', 'whatsapp'].forEach((key) => {
+      const url = social[key];
+      const link = document.getElementById(`social-${key}`);
+      if (link && url) {
+        link.href = url;
+        link.hidden = false;
+      }
+    });
+    if (social.whatsapp) {
+      const floatBtn = document.getElementById('whatsappFloat');
+      floatBtn.href = social.whatsapp;
+      floatBtn.hidden = false;
+    }
+  } catch (err) {
+    console.error('Errore caricamento link social', err);
+  }
+}
+applySocialLinks();
+
+/* ---------- Recensioni ---------- */
+const testimonialGrid = document.getElementById('testimonialGrid');
+const AVATAR_HUES = [32, 210, 265, 150, 340, 90];
+
+function initials(name) {
+  return (name || '?').trim().split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function renderTestimonials(list) {
+  if (!testimonialGrid) return;
+  testimonialGrid.innerHTML = list.map((r, i) => `
+    <article class="testimonial-card">
+      <div class="stars-row" aria-label="${r.rating} su 5 stelle">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+      <p>"${escapeHtml(r.content)}"</p>
+      ${r.photo ? `<div class="testimonial-photo"><img src="${escapeHtml(r.photo)}" alt="Foto di ${escapeHtml(r.name)}" loading="lazy"></div>` : ''}
+      ${r.videoUrl ? `<div class="testimonial-video">${videoEmbedHtml(r.videoUrl) || ''}</div>` : ''}
+      <div class="testimonial-author">
+        <span class="avatar" style="--avatar-hue:${AVATAR_HUES[i % AVATAR_HUES.length]}">${initials(r.name)}</span>
+        <div><strong>${escapeHtml(r.name)}</strong>${r.city ? `<span>${escapeHtml(r.city)}</span>` : ''}</div>
+      </div>
+    </article>
+  `).join('');
+  observeReveals();
+}
+
+if (configured) {
+  watchApprovedReviews(
+    (list) => renderTestimonials(list.length > 0 ? list : FALLBACK_REVIEWS),
+    (err) => { console.error('Errore recensioni', err); renderTestimonials(FALLBACK_REVIEWS); }
+  );
+} else {
+  renderTestimonials(FALLBACK_REVIEWS);
+}
+
+/* ---------- Form invio recensione ---------- */
+const reviewFormOverlay = document.getElementById('reviewFormOverlay');
+const ratingPicker = document.getElementById('ratingPicker');
+
+function paintRating(value) {
+  ratingPicker.dataset.value = value;
+  ratingPicker.querySelectorAll('[data-star]').forEach((btn) => {
+    btn.classList.toggle('is-active', parseInt(btn.dataset.star, 10) <= value);
+  });
+}
+ratingPicker.querySelectorAll('[data-star]').forEach((btn) => {
+  btn.addEventListener('click', () => paintRating(parseInt(btn.dataset.star, 10)));
+});
+paintRating(5);
+
+document.getElementById('openReviewFormBtn').addEventListener('click', () => {
+  if (!configured) { showToast('Modalità dimostrativa: le recensioni non sono ancora salvate.'); return; }
+  document.getElementById('publicReviewForm').reset();
+  document.getElementById('rvPhotoPreview').innerHTML = '';
+  document.getElementById('rvPhotoPreview').dataset.value = '';
+  paintRating(5);
+  document.getElementById('reviewFormNote').textContent = '';
+  reviewFormOverlay.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+});
+document.getElementById('reviewFormClose').addEventListener('click', closeReviewFormModal);
+reviewFormOverlay.addEventListener('click', (e) => { if (e.target === reviewFormOverlay) closeReviewFormModal(); });
+function closeReviewFormModal() {
+  reviewFormOverlay.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('rv-photo').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const preview = document.getElementById('rvPhotoPreview');
+  preview.innerHTML = '<span style="font-size:.7rem;color:var(--text-faint);">Elaborazione...</span>';
+  try {
+    const dataUri = await compressImageToDataUri(file, 700, 0.75);
+    preview.innerHTML = `<img src="${dataUri}" alt="Anteprima">`;
+    preview.dataset.value = dataUri;
+  } catch (err) {
+    preview.innerHTML = '<span style="font-size:.7rem;color:#ff8f8f;">Errore immagine</span>';
+  }
+});
+
+document.getElementById('publicReviewForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const note = document.getElementById('reviewFormNote');
+  const btn = document.getElementById('reviewSubmitBtn');
+  const form = e.target;
+  if (!form.checkValidity()) {
+    note.textContent = 'Compila nome e testo della recensione.';
+    note.classList.add('is-error');
+    return;
+  }
+  const data = {
+    name: document.getElementById('rv-name').value.trim(),
+    city: document.getElementById('rv-city').value.trim(),
+    rating: parseInt(ratingPicker.dataset.value, 10),
+    content: document.getElementById('rv-content').value.trim(),
+    photo: document.getElementById('rvPhotoPreview').dataset.value || null,
+  };
+  btn.disabled = true;
+  try {
+    await createReview(data);
+    note.classList.remove('is-error');
+    note.textContent = 'Grazie! La tua recensione sarà pubblicata dopo una rapida verifica.';
+    setTimeout(closeReviewFormModal, 1800);
+  } catch (err) {
+    console.error(err);
+    note.classList.add('is-error');
+    note.textContent = 'Si è verificato un errore, riprova tra poco.';
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 /* ---------- Init ---------- */
 function applyProducts(list) {

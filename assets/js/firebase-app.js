@@ -45,6 +45,7 @@ const ORDERS_COL = 'orders';
 const QUOTES_COL = 'quotes';
 const SUBSCRIBERS_COL = 'subscribers';
 const MAIL_OUTBOX_COL = 'mail_outbox';
+const REVIEWS_COL = 'reviews';
 
 function slugify(text) {
   return text
@@ -157,6 +158,15 @@ export async function deleteOrder(id) {
   await deleteDoc(doc(db, ORDERS_COL, id));
 }
 
+export async function updateOrderTracking(id, { trackingCarrier, trackingCode, trackingUrl }) {
+  await updateDoc(doc(db, ORDERS_COL, id), {
+    trackingCarrier: trackingCarrier || null,
+    trackingCode: trackingCode || null,
+    trackingUrl: trackingUrl || null,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 /* ---------------- Quote requests ("su misura") ---------------- */
 
 export async function createQuoteRequest(data) {
@@ -181,6 +191,51 @@ export async function updateQuoteStatus(id, status) {
 
 export async function deleteQuote(id) {
   await deleteDoc(doc(db, QUOTES_COL, id));
+}
+
+/* ---------------- Recensioni ---------------- */
+
+export async function createReview(data) {
+  const ref = await addDoc(collection(db, REVIEWS_COL), {
+    name: data.name,
+    content: data.content,
+    rating: Math.max(1, Math.min(5, Math.round(Number(data.rating) || 5))),
+    photo: data.photo || null,
+    videoUrl: data.videoUrl || null,
+    city: data.city || null,
+    orderId: data.orderId || null,
+    approved: false,
+    createdAt: serverTimestamp(),
+  });
+  await enqueueMail('owner_new_review', 'shop', REVIEWS_COL, ref.id);
+  return ref.id;
+}
+
+// Ordiniamo lato client per evitare l'indice composito su (approved, createdAt).
+export function watchApprovedReviews(onChange, onError) {
+  const q = query(collection(db, REVIEWS_COL), where('approved', '==', true));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+      onChange(list);
+    },
+    onError
+  );
+}
+
+export function watchAllReviews(onChange, onError) {
+  const q = query(collection(db, REVIEWS_COL), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snap) => onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), onError);
+}
+
+export async function updateReview(id, data) {
+  await updateDoc(doc(db, REVIEWS_COL, id), { ...data });
+}
+
+export async function deleteReview(id) {
+  await deleteDoc(doc(db, REVIEWS_COL, id));
 }
 
 /* ---------------- Newsletter ---------------- */
@@ -262,6 +317,15 @@ export async function getHeroSettings() {
 
 export async function saveHeroSettings(data) {
   await setDoc(doc(db, 'settings', 'hero'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+export async function getSocialSettings() {
+  const snap = await getDoc(doc(db, 'settings', 'social'));
+  return snap.exists() ? snap.data() : null;
+}
+
+export async function saveSocialSettings(data) {
+  await setDoc(doc(db, 'settings', 'social'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 export async function announceProduct(productId) {

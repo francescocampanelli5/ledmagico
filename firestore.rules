@@ -58,13 +58,29 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null;
     }
 
-    // Impostazioni del negozio (es. dati per il bonifico): lettura pubblica
-    // perché va mostrata al cliente dopo il checkout, scrittura riservata
+    // Impostazioni del negozio (es. dati per il bonifico, link social):
+    // lettura pubblica perché vanno mostrate sul sito, scrittura riservata
     // all'amministratore. Tenere questi dati in Firestore (invece che nel
     // codice sorgente) evita che finiscano nella cronologia pubblica di Git.
     match /settings/{docId} {
       allow read: if true;
       allow write: if request.auth != null;
+    }
+
+    // Recensioni: chiunque può inviarne una (form pubblico sul sito), ma
+    // solo se "approved" parte da false — così un visitatore non può
+    // auto-pubblicarsi. Solo le recensioni approvate sono leggibili dal
+    // pubblico; l'amministratore le legge, modifica, approva o elimina
+    // dalla dashboard.
+    match /reviews/{reviewId} {
+      allow read: if resource.data.approved == true || request.auth != null;
+      allow create: if request.resource.data.name is string
+                    && request.resource.data.content is string
+                    && request.resource.data.rating is int
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5
+                    && request.resource.data.approved == false;
+      allow update, delete: if request.auth != null;
     }
   }
 }

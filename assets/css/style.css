@@ -432,6 +432,45 @@ p{ margin: 0 0 1em; color: var(--text-dim); }
 }
 .testimonial-author strong{ display:block; font-size:.86rem; }
 .testimonial-author span{ font-size:.76rem; color: var(--text-faint); }
+.testimonial-photo{ margin-top:14px; border-radius: var(--radius-sm); overflow:hidden; line-height:0; }
+.testimonial-photo img{ width:100%; height:auto; display:block; }
+.testimonial-video{ margin-top:14px; border-radius: var(--radius-sm); overflow:hidden; }
+.testimonial-video iframe, .testimonial-video video{ width:100%; display:block; aspect-ratio:16/9; }
+.testimonial-cta{ text-align:center; margin-top: 32px; }
+
+/* ============ Rating picker + foto preview (form recensione) ============ */
+.rating-picker{ display:flex; gap:6px; }
+.rating-picker button{
+  background:none; border:none; font-size:1.6rem; line-height:1; color: var(--border);
+  cursor:pointer; transition: color .15s ease, transform .15s ease;
+}
+.rating-picker button.is-active{ color: var(--gold); }
+.rating-picker button:hover{ transform: scale(1.15); }
+.admin-photo-preview{
+  margin-top:10px; width:120px; height:120px; border-radius: var(--radius-sm);
+  background: var(--surface); border:1px solid var(--border-soft);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.admin-photo-preview img{ width:100%; height:100%; object-fit:cover; }
+
+/* ============ WhatsApp flottante ============ */
+.whatsapp-float{
+  position: fixed; right: 20px; bottom: 20px; z-index: 40;
+  width: 54px; height: 54px; border-radius: 50%;
+  background: #25d366; color: #08130c;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  transition: transform .2s ease;
+}
+.whatsapp-float:hover{ transform: scale(1.08); }
+.whatsapp-float svg{ width:28px; height:28px; }
+
+/* ============ Link button (checkout) ============ */
+.link-btn{
+  display:block; margin: 4px auto 0; background:none; border:none;
+  color: var(--text-faint); font-size:.78rem; text-decoration: underline; cursor:pointer;
+}
+.link-btn:hover{ color: var(--gold-soft); }
 
 /* ============ FAQ ============ */
 .faq-container{ max-width: 780px; }
@@ -653,6 +692,9 @@ p{ margin: 0 0 1em; color: var(--text-dim); }
   /* Le finestre a comparsa occupano tutto lo schermo su mobile, invece di
      restare "sospese" con margini che lasciano vedere lo sfondo ai lati. */
   .modal-overlay{ padding: 0; align-items: flex-end; }
+  .modal-actions{ flex-direction:column; }
+  .whatsapp-float{ right:14px; bottom:14px; width:48px; height:48px; }
+  .whatsapp-float svg{ width:24px; height:24px; }
   .product-modal, .success-modal, .checkout-modal{
     max-width: 100%; width: 100%; max-height: 92vh;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;

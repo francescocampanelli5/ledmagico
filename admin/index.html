@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/css/style.css?v=6">
-<link rel="stylesheet" href="../assets/css/admin.css?v=4">
+<link rel="stylesheet" href="../assets/css/style.css?v=7">
+<link rel="stylesheet" href="../assets/css/admin.css?v=5">
 </head>
 <body class="admin-body">
 
@@ -51,6 +51,7 @@
       <button class="admin-tab is-active" data-tab="products">Prodotti</button>
       <button class="admin-tab" data-tab="orders">Ordini <span class="admin-tab-badge" id="ordersBadge" hidden></span></button>
       <button class="admin-tab" data-tab="quotes">Richieste su misura <span class="admin-tab-badge" id="quotesBadge" hidden></span></button>
+      <button class="admin-tab" data-tab="reviews">Recensioni <span class="admin-tab-badge" id="reviewsBadge" hidden></span></button>
       <button class="admin-tab" data-tab="subscribers">Iscritti</button>
       <button class="admin-tab" data-tab="settings">Impostazioni</button>
     </nav>
@@ -105,6 +106,21 @@
       <p class="admin-empty" id="quotesEmpty" hidden>Nessuna richiesta ricevuta ancora.</p>
     </section>
 
+    <!-- ---- RECENSIONI ---- -->
+    <section class="admin-panel" id="panel-reviews">
+      <div class="admin-panel-head">
+        <h2>Recensioni</h2>
+        <p style="color:var(--text-faint);font-size:.84rem;">Le recensioni inviate dai clienti restano "In attesa" finché non le pubblichi. Puoi anche modificarne testo, valutazione, foto o video.</p>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="reviewsTable">
+          <thead><tr><th></th><th>Nome</th><th>Voto</th><th>Testo</th><th>Stato</th><th></th></tr></thead>
+          <tbody id="reviewsTbody"></tbody>
+        </table>
+      </div>
+      <p class="admin-empty" id="reviewsEmpty" hidden>Nessuna recensione ricevuta ancora.</p>
+    </section>
+
     <!-- ---- ISCRITTI NEWSLETTER ---- -->
     <section class="admin-panel" id="panel-subscribers">
       <div class="admin-panel-head"><h2>Iscritti newsletter</h2><span id="subscribersCount" style="color:var(--text-faint);font-size:.82rem;"></span></div>
@@ -149,6 +165,39 @@
         </div>
         <button type="submit" class="btn btn-primary" id="settingsSaveBtn">Salva impostazioni</button>
         <p class="form-note" id="settingsNote" role="status" aria-live="polite"></p>
+      </form>
+
+      <form id="socialForm" class="admin-settings-form" style="margin-top:24px;max-width:640px;">
+        <h3 style="margin-top:0;">Link social</h3>
+        <p style="color:var(--text-faint);font-size:.84rem;margin-top:-8px;">Lascia vuoto un campo per nascondere quell'icona dal sito. Il pulsante WhatsApp flottante appare solo se compili quel campo.</p>
+        <div class="admin-form-grid">
+          <div class="form-row">
+            <label for="social-instagram">Instagram</label>
+            <input type="url" id="social-instagram" placeholder="https://instagram.com/tuonegozio">
+          </div>
+          <div class="form-row">
+            <label for="social-facebook">Facebook</label>
+            <input type="url" id="social-facebook" placeholder="https://facebook.com/tuonegozio">
+          </div>
+          <div class="form-row">
+            <label for="social-tiktok">TikTok</label>
+            <input type="url" id="social-tiktok" placeholder="https://tiktok.com/@tuonegozio">
+          </div>
+          <div class="form-row">
+            <label for="social-pinterest">Pinterest</label>
+            <input type="url" id="social-pinterest" placeholder="https://pinterest.com/tuonegozio">
+          </div>
+          <div class="form-row">
+            <label for="social-youtube">YouTube</label>
+            <input type="url" id="social-youtube" placeholder="https://youtube.com/@tuonegozio">
+          </div>
+          <div class="form-row">
+            <label for="social-whatsapp">WhatsApp <span class="label-optional">(link wa.me)</span></label>
+            <input type="url" id="social-whatsapp" placeholder="https://wa.me/393xxxxxxxxx">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="socialSaveBtn">Salva link social</button>
+        <p class="form-note" id="socialNote" role="status" aria-live="polite"></p>
       </form>
 
       <form id="heroForm" class="admin-settings-form" style="margin-top:24px;">
@@ -265,8 +314,62 @@
   </div>
 </div>
 
+<!-- ============ REVIEW EDIT MODAL ============ -->
+<div class="modal-overlay" id="reviewEditOverlay">
+  <div class="product-modal admin-edit-modal" role="dialog" aria-modal="true">
+    <button class="icon-btn modal-close" id="reviewEditClose" aria-label="Chiudi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="modal-body admin-edit-body">
+      <form id="reviewForm">
+        <h2>Modifica recensione</h2>
+        <div class="admin-form-grid">
+          <div class="form-row">
+            <label for="rf-name">Nome</label>
+            <input type="text" id="rf-name" required>
+          </div>
+          <div class="form-row">
+            <label for="rf-city">Città <span class="label-optional">(opzionale)</span></label>
+            <input type="text" id="rf-city">
+          </div>
+          <div class="form-row">
+            <label for="rf-rating">Valutazione</label>
+            <select id="rf-rating">
+              <option value="5">★★★★★ (5)</option>
+              <option value="4">★★★★☆ (4)</option>
+              <option value="3">★★★☆☆ (3)</option>
+              <option value="2">★★☆☆☆ (2)</option>
+              <option value="1">★☆☆☆☆ (1)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="rf-content">Testo della recensione</label>
+          <textarea id="rf-content" rows="4" required></textarea>
+        </div>
+        <div class="form-row">
+          <label for="rf-photo">Foto <span class="label-optional">(opzionale)</span></label>
+          <input type="file" id="rf-photo" accept="image/*">
+          <div class="admin-photo-preview" id="rfPhotoPreview"></div>
+        </div>
+        <div class="form-row">
+          <label for="rf-video">Video <span class="label-optional">(opzionale — link YouTube, Vimeo o file .mp4)</span></label>
+          <input type="url" id="rf-video" placeholder="https://youtube.com/watch?v=...">
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="rf-approved">
+          <span>Pubblicata sul sito</span>
+        </label>
+        <div class="admin-form-actions">
+          <button type="button" class="btn btn-ghost" id="reviewDeleteBtn">Elimina recensione</button>
+          <button type="submit" class="btn btn-primary" id="reviewSaveBtn">Salva recensione</button>
+        </div>
+        <p class="form-note" id="reviewFormNote" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
-<script type="module" src="admin.js?v=7"></script>
+<script type="module" src="admin.js?v=8"></script>
 </body>
 </html>

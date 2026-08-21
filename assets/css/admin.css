@@ -79,6 +79,15 @@
 .order-details-row td{ background: var(--bg); font-size:.82rem; }
 .order-toggle{ cursor:pointer; color: var(--gold-soft); text-decoration:underline; background:none; border:none; font-size:.8rem; }
 
+.admin-tracking-row{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px;
+  padding-top:12px; border-top:1px dashed var(--border-soft);
+}
+.admin-tracking-row input{
+  background: var(--surface); border:1px solid var(--border-soft); color: var(--text);
+  border-radius: var(--radius-sm); padding:6px 10px; font-size:.8rem; min-width:150px; flex:1;
+}
+
 /* ---- Product edit modal ---- */
 .admin-edit-modal{ max-width: 640px; max-height:92vh; }
 .admin-edit-body{ padding: 36px; }

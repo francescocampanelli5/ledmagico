@@ -96,6 +96,8 @@ function sendForOutboxItem_(item) {
       return sendNewsletterWelcome_(item);
     case 'product_announcement':
       return sendProductAnnouncement_(item);
+    case 'owner_new_review':
+      return sendOwnerNewReview_(item);
     default:
       console.warn('Tipo email sconosciuto: ' + item.type);
   }
@@ -241,14 +243,14 @@ function sendOrderStatusChanged_(item) {
   const status = (item.meta && item.meta.status) || '';
   const copy = {
     confermato: {
-      subject: `Pagamento confermato — ${item.refId}`,
-      title: 'Pagamento confermato',
-      body: `<p>Ciao ${escapeHtml_(order.customerName)},</p><p>Abbiamo confermato il pagamento del tuo ordine <strong>${escapeHtml_(item.refId)}</strong>. Il tuo pezzo è ora in lavorazione: lo prepariamo e cabliamo su misura per te.</p>`,
+      subject: `Grazie! Pagamento confermato — ${item.refId}`,
+      title: 'Grazie di cuore ✨',
+      body: `<p>Ciao ${escapeHtml_(order.customerName)},</p><p>Abbiamo confermato il pagamento del tuo ordine <strong>${escapeHtml_(item.refId)}</strong> — grazie per aver scelto ${CONFIG.SHOP_NAME}! Il tuo pezzo è ora in lavorazione: lo prepariamo e cabliamo a mano, apposta per te.</p><p>Ti scriveremo di nuovo non appena parte per la spedizione.</p>`,
     },
     spedito: {
       subject: `Il tuo ordine è partito — ${item.refId}`,
       title: 'Il tuo modellino è in viaggio',
-      body: `<p>Ciao ${escapeHtml_(order.customerName)},</p><p>Il tuo ordine <strong>${escapeHtml_(item.refId)}</strong> è stato spedito. Grazie per aver scelto ${CONFIG.SHOP_NAME}!</p>`,
+      body: `<p>Ciao ${escapeHtml_(order.customerName)},</p><p>Il tuo ordine <strong>${escapeHtml_(item.refId)}</strong> è stato spedito. Grazie per aver scelto ${CONFIG.SHOP_NAME}!</p>${trackingHtml_(order)}`,
     },
     annullato: {
       subject: `Ordine annullato — ${item.refId}`,
@@ -266,14 +268,39 @@ function sendOrderFollowUp_(item) {
   if (!order) return;
   const firstItem = (order.items || [])[0];
   const productName = firstItem ? firstItem.name : 'il tuo modellino';
+  const reviewUrl = `${CONFIG.SITE_URL}/#recensioni`;
   const html = wrapEmail_(
     'Com\'è andata?',
     `<p>Ciao ${escapeHtml_(order.customerName)},</p>
      <p>Il tuo ${escapeHtml_(productName)} dovrebbe essere arrivato da qualche giorno. Speriamo che si sia già acceso un angolo di casa tua! ✨</p>
      <p>Se qualcosa non va o hai bisogno di assistenza, rispondi pure a questa email: siamo qui per aiutarti.</p>
-     <p>Se invece è tutto perfetto, una tua recensione ci aiuterebbe moltissimo a far conoscere ${CONFIG.SHOP_NAME} — bastano due minuti.</p>`
+     <p>Se invece è tutto perfetto, una tua recensione ci aiuterebbe moltissimo a far conoscere ${CONFIG.SHOP_NAME} — bastano due minuti.</p>
+     <p style="text-align:center;margin:22px 0;"><a href="${reviewUrl}" style="display:inline-block;background:#f4c064;color:#1a1200;padding:10px 22px;border-radius:999px;text-decoration:none;font-weight:bold;">Lascia una recensione →</a></p>`
   );
   GmailApp.sendEmail(order.customerEmail, `Com'è andata con il tuo ordine ${item.refId}?`, plainFallback_(html), { htmlBody: html, name: CONFIG.SHOP_NAME });
+}
+
+function trackingHtml_(order) {
+  if (!order.trackingCode && !order.trackingUrl) return '';
+  const carrier = order.trackingCarrier ? escapeHtml_(order.trackingCarrier) : 'Corriere';
+  return `
+    <div style="background:#0a0c16;border:1px solid rgba(244,201,120,0.25);border-radius:10px;padding:16px 18px;margin:16px 0;">
+      <p style="margin:0 0 8px;font-weight:bold;color:#f4c064;">Tracciamento spedizione</p>
+      <p style="margin:0 0 4px;">${carrier}${order.trackingCode ? `: <strong>${escapeHtml_(order.trackingCode)}</strong>` : ''}</p>
+      ${order.trackingUrl ? `<p style="margin:8px 0 0;"><a href="${escapeHtml_(order.trackingUrl)}" style="color:#f4c064;">Segui la spedizione →</a></p>` : ''}
+    </div>`;
+}
+
+function sendOwnerNewReview_(item) {
+  const review = firestoreGetDecoded_(`reviews/${item.refId}`);
+  if (!review) return;
+  const html = wrapEmail_(
+    'Nuova recensione da approvare',
+    `<p>${escapeHtml_(review.name)}${review.city ? ` (${escapeHtml_(review.city)})` : ''} ha lasciato ${review.rating}/5 stelle:</p>
+     <p style="color:#a9aec4;font-style:italic;">"${escapeHtml_(review.content)}"</p>
+     <p><a href="${CONFIG.SITE_URL}/admin/">Apri la dashboard per pubblicarla</a></p>`
+  );
+  GmailApp.sendEmail(CONFIG.SHOP_EMAIL, `Nuova recensione da ${review.name}`, plainFallback_(html), { htmlBody: html, name: CONFIG.SHOP_NAME });
 }
 
 function sendNewsletterWelcome_(item) {

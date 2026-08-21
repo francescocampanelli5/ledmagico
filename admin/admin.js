@@ -4,14 +4,16 @@ import { escapeHtml, safeUrl } from '../assets/js/sanitize.js';
 import {
   configured, watchAuth, login, logout,
   watchAllProducts, createProduct, updateProduct, deleteProduct, announceProduct,
-  watchOrders, updateOrderStatus, deleteOrder,
+  watchOrders, updateOrderStatus, deleteOrder, updateOrderTracking,
   watchQuotes, updateQuoteStatus, deleteQuote,
   watchSubscribers,
+  watchAllReviews, updateReview, deleteReview,
   getPaymentSettings, savePaymentSettings,
   getGeneralSettings, saveGeneralSettings,
   getHeroSettings, saveHeroSettings,
+  getSocialSettings, saveSocialSettings,
   compressImageToDataUri,
-} from '../assets/js/firebase-app.js?v=6';
+} from '../assets/js/firebase-app.js?v=7';
 
 const ORDER_STATUSES = {
   da_confermare: 'Da confermare',
@@ -90,6 +92,7 @@ function initDashboard() {
   initProducts();
   initOrders();
   initQuotes();
+  initReviews();
   initSubscribers();
   initSettings();
 }
@@ -367,6 +370,13 @@ function renderOrdersTable(list) {
         <strong>Telefono:</strong> ${escapeHtml(o.customerPhone || '—')}<br>
         <strong>Note:</strong> ${escapeHtml(o.notes || '—')}<br>
         <strong>Articoli:</strong> ${(o.items || []).map((it) => `${it.qty}× ${escapeHtml(it.name)} (${escapeHtml(it.colorLabel || it.color)})`).join(', ')}
+        <div class="admin-tracking-row">
+          <strong>Tracciamento spedizione:</strong>
+          <input type="text" class="tr-carrier" data-tr-carrier="${o.id}" placeholder="Corriere (es. BRT, GLS)" value="${escapeHtml(o.trackingCarrier || '')}">
+          <input type="text" class="tr-code" data-tr-code="${o.id}" placeholder="Codice tracciamento" value="${escapeHtml(o.trackingCode || '')}">
+          <input type="url" class="tr-url" data-tr-url="${o.id}" placeholder="Link tracciamento (opzionale)" value="${escapeHtml(o.trackingUrl || '')}">
+          <button type="button" class="btn btn-ghost btn-sm" data-save-tracking="${o.id}">Salva tracciamento</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -397,6 +407,23 @@ function renderOrdersTable(list) {
       } catch (err) {
         console.error(err);
         alert('Errore durante l\'eliminazione.');
+      }
+    });
+  });
+  tbody.querySelectorAll('[data-save-tracking]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.saveTracking;
+      const row = document.getElementById(`details-${id}`);
+      try {
+        await updateOrderTracking(id, {
+          trackingCarrier: row.querySelector('.tr-carrier').value.trim(),
+          trackingCode: row.querySelector('.tr-code').value.trim(),
+          trackingUrl: row.querySelector('.tr-url').value.trim(),
+        });
+        showToast('Tracciamento salvato — sarà incluso nell\'email di spedizione');
+      } catch (err) {
+        console.error(err);
+        alert('Errore durante il salvataggio del tracciamento.');
       }
     });
   });
@@ -465,6 +492,161 @@ function renderQuotesTable(list) {
   });
 }
 
+/* ================= RECENSIONI ================= */
+let allReviews = [];
+const STARS = (n) => '★★★★★☆☆☆☆☆'.slice(5 - n, 10 - n);
+
+function initReviews() {
+  watchAllReviews(
+    (list) => { allReviews = list; renderReviewsTable(list); },
+    (err) => console.error('Errore recensioni', err)
+  );
+
+  document.getElementById('reviewEditClose').addEventListener('click', closeReviewForm);
+  document.getElementById('reviewEditOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'reviewEditOverlay') closeReviewForm();
+  });
+  document.getElementById('rf-photo').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const preview = document.getElementById('rfPhotoPreview');
+    preview.innerHTML = '<span style="font-size:.7rem;color:var(--text-faint);">Elaborazione...</span>';
+    try {
+      const dataUri = await compressImageToDataUri(file, 700, 0.75);
+      preview.innerHTML = `<img src="${dataUri}" alt="Anteprima">`;
+      preview.dataset.value = dataUri;
+    } catch (err) {
+      preview.innerHTML = '<span style="font-size:.7rem;color:#ff8f8f;">Errore immagine</span>';
+    }
+  });
+  document.getElementById('reviewForm').addEventListener('submit', onSaveReview);
+  document.getElementById('reviewDeleteBtn').addEventListener('click', onDeleteReview);
+}
+
+function renderReviewsTable(list) {
+  const tbody = document.getElementById('reviewsTbody');
+  const empty = document.getElementById('reviewsEmpty');
+  const badge = document.getElementById('reviewsBadge');
+  const pending = list.filter((r) => !r.approved).length;
+  badge.hidden = pending === 0;
+  badge.textContent = pending;
+
+  if (list.length === 0) {
+    tbody.innerHTML = '';
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+
+  tbody.innerHTML = list.map((r) => `
+    <tr>
+      <td><div class="admin-thumb">${r.photo ? `<img src="${r.photo}" alt="">` : '—'}</div></td>
+      <td><strong>${escapeHtml(r.name)}</strong>${r.videoUrl ? ' 🎬' : ''}</td>
+      <td style="color:var(--gold-soft);">${STARS(r.rating || 5)}</td>
+      <td style="max-width:280px;">${escapeHtml((r.content || '').slice(0, 90))}${(r.content || '').length > 90 ? '…' : ''}</td>
+      <td><span class="status-pill ${r.approved ? 'active' : 'inactive'}">${r.approved ? 'Pubblicata' : 'In attesa'}</span></td>
+      <td>
+        <div class="row-actions">
+          ${r.approved
+            ? `<button data-toggle-approve="${r.id}" data-next="false">Nascondi</button>`
+            : `<button data-toggle-approve="${r.id}" data-next="true">Pubblica</button>`}
+          <button data-edit-review="${r.id}">Modifica</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('[data-toggle-approve]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await updateReview(btn.dataset.toggleApprove, { approved: btn.dataset.next === 'true' });
+        showToast(btn.dataset.next === 'true' ? 'Recensione pubblicata' : 'Recensione nascosta');
+      } catch (err) {
+        console.error(err);
+        alert('Errore durante l\'aggiornamento.');
+      }
+    });
+  });
+  tbody.querySelectorAll('[data-edit-review]').forEach((btn) => {
+    btn.addEventListener('click', () => openReviewForm(btn.dataset.editReview));
+  });
+}
+
+let editingReviewId = null;
+
+function openReviewForm(id) {
+  editingReviewId = id;
+  const r = allReviews.find((x) => x.id === id);
+  if (!r) return;
+  const preview = document.getElementById('rfPhotoPreview');
+  preview.innerHTML = r.photo ? `<img src="${r.photo}" alt="">` : '';
+  preview.dataset.value = r.photo || '';
+  document.getElementById('reviewFormNote').textContent = '';
+  document.getElementById('rf-name').value = r.name || '';
+  document.getElementById('rf-city').value = r.city || '';
+  document.getElementById('rf-rating').value = String(r.rating || 5);
+  document.getElementById('rf-content').value = r.content || '';
+  document.getElementById('rf-video').value = r.videoUrl || '';
+  document.getElementById('rf-approved').checked = !!r.approved;
+
+  document.getElementById('reviewEditOverlay').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeReviewForm() {
+  document.getElementById('reviewEditOverlay').classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+async function onSaveReview(e) {
+  e.preventDefault();
+  if (!editingReviewId) return;
+  const note = document.getElementById('reviewFormNote');
+  const saveBtn = document.getElementById('reviewSaveBtn');
+  const photoPreview = document.getElementById('rfPhotoPreview');
+
+  const data = {
+    name: document.getElementById('rf-name').value.trim(),
+    city: document.getElementById('rf-city').value.trim() || null,
+    rating: parseInt(document.getElementById('rf-rating').value, 10),
+    content: document.getElementById('rf-content').value.trim(),
+    photo: photoPreview.dataset.value || null,
+    videoUrl: document.getElementById('rf-video').value.trim() || null,
+    approved: document.getElementById('rf-approved').checked,
+  };
+  if (!data.name || !data.content) {
+    note.textContent = 'Nome e testo della recensione sono obbligatori.';
+    note.classList.add('is-error');
+    return;
+  }
+
+  saveBtn.disabled = true;
+  try {
+    await updateReview(editingReviewId, data);
+    closeReviewForm();
+    showToast('Recensione salvata');
+  } catch (err) {
+    console.error(err);
+    note.classList.add('is-error');
+    note.textContent = 'Errore durante il salvataggio.';
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+async function onDeleteReview() {
+  if (!editingReviewId) return;
+  if (!confirm('Eliminare definitivamente questa recensione?')) return;
+  try {
+    await deleteReview(editingReviewId);
+    closeReviewForm();
+    showToast('Recensione eliminata');
+  } catch (err) {
+    console.error(err);
+    alert('Errore durante l\'eliminazione.');
+  }
+}
+
 /* ================= ISCRITTI NEWSLETTER ================= */
 function initSubscribers() {
   watchSubscribers(
@@ -531,6 +713,39 @@ function initSettings() {
   });
 
   initHeroSettings();
+  initSocialSettings();
+}
+
+function initSocialSettings() {
+  const fields = ['instagram', 'facebook', 'tiktok', 'pinterest', 'youtube', 'whatsapp'];
+  getSocialSettings().then((data) => {
+    if (!data) return;
+    fields.forEach((f) => {
+      const el = document.getElementById(`social-${f}`);
+      if (el && data[f]) el.value = data[f];
+    });
+  }).catch((err) => console.error('Errore social', err));
+
+  document.getElementById('socialForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const note = document.getElementById('socialNote');
+    const btn = document.getElementById('socialSaveBtn');
+    btn.disabled = true;
+    try {
+      const payload = {};
+      fields.forEach((f) => { payload[f] = document.getElementById(`social-${f}`).value.trim() || null; });
+      await saveSocialSettings(payload);
+      note.classList.remove('is-error');
+      note.textContent = 'Link social salvati.';
+      showToast('Link social salvati');
+    } catch (err) {
+      console.error(err);
+      note.classList.add('is-error');
+      note.textContent = 'Errore durante il salvataggio.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
 }
 
 function initContactSettings() {
