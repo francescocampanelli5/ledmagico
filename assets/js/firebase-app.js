@@ -179,6 +179,10 @@ export async function updateQuoteStatus(id, status) {
   await updateDoc(doc(db, QUOTES_COL, id), { status });
 }
 
+export async function deleteQuote(id) {
+  await deleteDoc(doc(db, QUOTES_COL, id));
+}
+
 /* ---------------- Newsletter ---------------- */
 
 export async function subscribeNewsletter(email) {
@@ -240,6 +244,15 @@ export async function getPaymentSettings() {
 
 export async function savePaymentSettings(data) {
   await setDoc(doc(db, 'settings', 'payment'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+export async function getGeneralSettings() {
+  const snap = await getDoc(doc(db, 'settings', 'general'));
+  return snap.exists() ? snap.data() : null;
+}
+
+export async function saveGeneralSettings(data) {
+  await setDoc(doc(db, 'settings', 'general'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 export async function getHeroSettings() {

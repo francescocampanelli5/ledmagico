@@ -1,6 +1,6 @@
 /* ============ LedMagico — App logic (storefront) ============ */
 import { ICONS, renderProductMedia, videoEmbedHtml, CATEGORY_LABEL, COLOR_LABEL, COLOR_VARS } from './icons.js?v=2';
-import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, getPaymentSettings, getHeroSettings, genOrderId } from './firebase-app.js?v=4';
+import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, getPaymentSettings, getHeroSettings, getGeneralSettings, genOrderId } from './firebase-app.js?v=5';
 import { escapeHtml } from './sanitize.js';
 
 /* ---------- Dati di fallback (usati finché Firebase non è configurato) ---------- */
@@ -540,11 +540,13 @@ async function applyHeroMedia() {
       const embed = videoEmbedHtml(hero.videoUrl);
       if (embed) {
         media.innerHTML = embed;
-        media.classList.add('has-custom-media');
+        media.classList.add('has-custom-video');
       }
     } else if (hero.type === 'image' && hero.imageData) {
+      // Niente aspect-ratio forzato: l'immagine mantiene le sue proporzioni
+      // naturali invece di essere ritagliata dentro un riquadro fisso.
       media.innerHTML = `<img src="${escapeHtml(hero.imageData)}" alt="Vetrina LedMagico">`;
-      media.classList.add('has-custom-media');
+      media.classList.add('has-custom-image');
     }
     const tag = document.getElementById('heroMediaTag');
     if (tag && hero.caption) tag.textContent = hero.caption;
@@ -553,6 +555,23 @@ async function applyHeroMedia() {
   }
 }
 applyHeroMedia();
+
+/* ---------- Email di contatto (dashboard → Impostazioni) ---------- */
+async function applyContactEmail() {
+  if (!configured) return;
+  try {
+    const general = await getGeneralSettings();
+    const email = general && general.contactEmail;
+    if (!email) return;
+    const link = document.getElementById('footerContactEmail');
+    link.href = `mailto:${email}`;
+    link.textContent = email;
+    link.hidden = false;
+  } catch (err) {
+    console.error('Errore caricamento email di contatto', err);
+  }
+}
+applyContactEmail();
 
 /* ---------- Init ---------- */
 function applyProducts(list) {

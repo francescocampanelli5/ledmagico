@@ -5,12 +5,13 @@ import {
   configured, watchAuth, login, logout,
   watchAllProducts, createProduct, updateProduct, deleteProduct, announceProduct,
   watchOrders, updateOrderStatus, deleteOrder,
-  watchQuotes, updateQuoteStatus,
+  watchQuotes, updateQuoteStatus, deleteQuote,
   watchSubscribers,
   getPaymentSettings, savePaymentSettings,
+  getGeneralSettings, saveGeneralSettings,
   getHeroSettings, saveHeroSettings,
   compressImageToDataUri,
-} from '../assets/js/firebase-app.js?v=5';
+} from '../assets/js/firebase-app.js?v=6';
 
 const ORDER_STATUSES = {
   da_confermare: 'Da confermare',
@@ -19,7 +20,7 @@ const ORDER_STATUSES = {
   spedito: 'Spedito',
   annullato: 'Annullato',
 };
-const QUOTE_STATUSES = { nuova: 'Nuova', risposta: 'Risposto' };
+const QUOTE_STATUSES = { nuova: 'Nuova', risposta: 'Risposto', rifiutata: 'Non accettata' };
 
 const DEMO_PRODUCTS = [
   { name: 'Torre Eiffel LED', category: 'monumenti', price: 49, shortDesc: 'La dama di ferro parigina, reinterpretata in legno e luce calda.', fullDesc: 'Una replica in scala della Torre Eiffel, intagliata a mano in legno chiaro e cablata con oltre 40 micro LED lungo la struttura reticolare. Un piccolo faro che trasforma una mensola in uno scorcio di Parigi al tramonto.', specs: ['Altezza 26 cm · base 12x12 cm', 'Legno di faggio e metallo verniciato', '40+ micro LED integrati', 'Alimentazione USB, cavo 1.5 m incluso'], iconKey: 'eiffel' },
@@ -435,7 +436,7 @@ function renderQuotesTable(list) {
           ${Object.entries(QUOTE_STATUSES).map(([k, v]) => `<option value="${k}" ${q.status === k ? 'selected' : ''}>${v}</option>`).join('')}
         </select>
       </td>
-      <td></td>
+      <td><button data-delete-quote="${q.id}" title="Elimina definitivamente questa richiesta">🗑 Elimina</button></td>
     </tr>
   `).join('');
 
@@ -447,6 +448,18 @@ function renderQuotesTable(list) {
       } catch (err) {
         console.error(err);
         alert('Errore durante l\'aggiornamento.');
+      }
+    });
+  });
+  tbody.querySelectorAll('[data-delete-quote]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Eliminare definitivamente questa richiesta?')) return;
+      try {
+        await deleteQuote(btn.dataset.deleteQuote);
+        showToast('Richiesta eliminata');
+      } catch (err) {
+        console.error(err);
+        alert('Errore durante l\'eliminazione.');
       }
     });
   });
@@ -485,6 +498,8 @@ function renderSubscribersTable(list) {
 
 /* ================= IMPOSTAZIONI ================= */
 function initSettings() {
+  initContactSettings();
+
   getPaymentSettings().then((data) => {
     if (!data) return;
     document.getElementById('set-iban').value = data.iban || '';
@@ -516,6 +531,32 @@ function initSettings() {
   });
 
   initHeroSettings();
+}
+
+function initContactSettings() {
+  getGeneralSettings().then((data) => {
+    if (data && data.contactEmail) document.getElementById('contact-email').value = data.contactEmail;
+  }).catch((err) => console.error('Errore contatti', err));
+
+  document.getElementById('contactForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const note = document.getElementById('contactNote');
+    const btn = document.getElementById('contactSaveBtn');
+    const email = document.getElementById('contact-email').value.trim();
+    btn.disabled = true;
+    try {
+      await saveGeneralSettings({ contactEmail: email });
+      note.classList.remove('is-error');
+      note.textContent = 'Email salvata.';
+      showToast('Email di contatto salvata');
+    } catch (err) {
+      console.error(err);
+      note.classList.add('is-error');
+      note.textContent = 'Errore durante il salvataggio.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
 }
 
 function initHeroSettings() {

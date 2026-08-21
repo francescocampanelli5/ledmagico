@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/css/style.css?v=3">
-<link rel="stylesheet" href="../assets/css/admin.css?v=3">
+<link rel="stylesheet" href="../assets/css/style.css?v=4">
+<link rel="stylesheet" href="../assets/css/admin.css?v=4">
 </head>
 <body class="admin-body">
 
@@ -120,7 +120,19 @@
     <!-- ---- IMPOSTAZIONI ---- -->
     <section class="admin-panel" id="panel-settings">
       <div class="admin-panel-head"><h2>Impostazioni</h2></div>
-      <form id="settingsForm" class="admin-settings-form">
+
+      <form id="contactForm" class="admin-settings-form">
+        <h3 style="margin-top:0;">Email di contatto</h3>
+        <p style="color:var(--text-faint);font-size:.84rem;margin-top:-8px;">L'indirizzo che vedranno i clienti sul sito per assistenza, richieste o problemi con un ordine.</p>
+        <div class="form-row">
+          <label for="contact-email">Email</label>
+          <input type="email" id="contact-email" placeholder="nome@esempio.it">
+        </div>
+        <button type="submit" class="btn btn-primary" id="contactSaveBtn">Salva email</button>
+        <p class="form-note" id="contactNote" role="status" aria-live="polite"></p>
+      </form>
+
+      <form id="settingsForm" class="admin-settings-form" style="margin-top:24px;">
         <h3 style="margin-top:0;">Dati per il bonifico bancario</h3>
         <p style="color:var(--text-faint);font-size:.84rem;margin-top:-8px;">Questi dati vengono mostrati automaticamente al cliente subito dopo l'ordine e inseriti nell'email di conferma. Restano solo nel database: non compaiono mai nel codice del sito.</p>
         <div class="form-row">
@@ -255,6 +267,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script type="module" src="admin.js?v=5"></script>
+<script type="module" src="admin.js?v=7"></script>
 </body>
 </html>
