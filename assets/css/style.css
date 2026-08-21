@@ -30,7 +30,10 @@
    (es. .btn, .admin-setup-notice). Senza questa riga, toggle via
    `el.hidden = true/false` in JS non avrebbero alcun effetto visivo. */
 [hidden]{ display: none !important; }
-html{ scroll-behavior: smooth; }
+/* overflow-x va sull'elemento html, non su body: su body impedisce a
+   position:fixed (l'header) di restare ancorato al viewport durante lo
+   scroll in alcuni browser — un problema noto di questa combinazione. */
+html{ scroll-behavior: smooth; overflow-x: hidden; }
 body{
   margin:0;
   background: var(--bg);
@@ -38,7 +41,6 @@ body{
   font-family: var(--font-body);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
 }
 img,svg{ display:block; max-width:100%; }
 a{ color: inherit; text-decoration: none; }
