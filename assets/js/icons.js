@@ -103,9 +103,42 @@ export const ICONS = {
 
 export const ICON_KEYS = Object.keys(ICONS);
 
+function escapeAttr(value) {
+  return String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+// Restituisce l'URL solo se usa uno schema sicuro (http/https), altrimenti null.
+function safeMediaUrl(value) {
+  try {
+    const url = new URL(String(value), window.location.href);
+    if (url.protocol === 'http:' || url.protocol === 'https:') return url.href;
+  } catch (e) { /* URL non valido */ }
+  return null;
+}
+
+// Incorpora un video da URL: riconosce YouTube e Vimeo (player embed),
+// altrimenti lo tratta come link diretto a un file video.
+export function videoEmbedHtml(rawUrl) {
+  const url = safeMediaUrl(rawUrl);
+  if (!url) return '';
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,})/);
+  if (yt) {
+    return `<iframe src="https://www.youtube-nocookie.com/embed/${yt[1]}" title="Video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%;height:100%;border:0;"></iframe>`;
+  }
+  const vimeo = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) {
+    return `<iframe src="https://player.vimeo.com/video/${vimeo[1]}" title="Video" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen style="width:100%;height:100%;border:0;"></iframe>`;
+  }
+  return `<video src="${escapeAttr(url)}" controls playsinline style="width:100%;height:100%;object-fit:cover;"></video>`;
+}
+
 export function renderProductMedia(product) {
+  if (product.videoUrl) {
+    const embed = videoEmbedHtml(product.videoUrl);
+    if (embed) return embed;
+  }
   if (product.image) {
-    return `<img src="${product.image}" alt="${product.name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+    return `<img src="${escapeAttr(product.image)}" alt="${escapeAttr(product.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
   }
   const icon = ICONS[product.iconKey] || ICONS.eiffel;
   return icon();

@@ -1,6 +1,6 @@
 /* ============ LedMagico — App logic (storefront) ============ */
-import { ICONS, renderProductMedia, CATEGORY_LABEL, COLOR_LABEL, COLOR_VARS } from './icons.js';
-import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, getPaymentSettings, genOrderId } from './firebase-app.js?v=3';
+import { ICONS, renderProductMedia, videoEmbedHtml, CATEGORY_LABEL, COLOR_LABEL, COLOR_VARS } from './icons.js?v=2';
+import { configured, watchActiveProducts, createOrder, createQuoteRequest, subscribeNewsletter, getPaymentSettings, getHeroSettings, genOrderId } from './firebase-app.js?v=4';
 import { escapeHtml } from './sanitize.js';
 
 /* ---------- Dati di fallback (usati finché Firebase non è configurato) ---------- */
@@ -528,6 +528,31 @@ if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
   }, { passive: true });
   window.addEventListener('mouseleave', () => { glow.style.opacity = '0'; });
 }
+
+/* ---------- Vetrina home personalizzata ---------- */
+async function applyHeroMedia() {
+  if (!configured) return;
+  try {
+    const hero = await getHeroSettings();
+    if (!hero) return;
+    const media = document.getElementById('heroMedia');
+    if (hero.type === 'video' && hero.videoUrl) {
+      const embed = videoEmbedHtml(hero.videoUrl);
+      if (embed) {
+        media.innerHTML = embed;
+        media.classList.add('has-custom-media');
+      }
+    } else if (hero.type === 'image' && hero.imageData) {
+      media.innerHTML = `<img src="${escapeHtml(hero.imageData)}" alt="Vetrina LedMagico">`;
+      media.classList.add('has-custom-media');
+    }
+    const tag = document.getElementById('heroMediaTag');
+    if (tag && hero.caption) tag.textContent = hero.caption;
+  } catch (err) {
+    console.error('Errore caricamento vetrina', err);
+  }
+}
+applyHeroMedia();
 
 /* ---------- Init ---------- */
 function applyProducts(list) {

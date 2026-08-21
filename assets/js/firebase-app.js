@@ -89,6 +89,17 @@ export async function getProductsByIds(ids) {
   return results.filter((d) => d.exists()).map((d) => ({ id: d.id, ...d.data() }));
 }
 
+// Il resto del sito (carrello, checkout, regole di sicurezza) si aspetta
+// un campo priceCents (intero, in centesimi) su ogni prodotto. Il form
+// della dashboard raccoglie invece un prezzo in euro (data.price): questa
+// funzione garantisce che priceCents sia sempre calcolato e coerente,
+// qualunque sia la provenienza dei dati.
+function withPriceCents(data) {
+  const out = { ...data };
+  if (data.price !== undefined) out.priceCents = Math.round(Number(data.price) * 100);
+  return out;
+}
+
 export async function createProduct(data) {
   let id = slugify(data.name);
   const existing = await getDoc(doc(db, PRODUCTS_COL, id));
@@ -98,7 +109,7 @@ export async function createProduct(data) {
   const maxSort = allSnap.docs.reduce((m, d) => Math.max(m, d.data().sortOrder || 0), 0);
 
   await setDoc(doc(db, PRODUCTS_COL, id), {
-    ...data,
+    ...withPriceCents(data),
     sortOrder: maxSort + 1,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -107,7 +118,7 @@ export async function createProduct(data) {
 }
 
 export async function updateProduct(id, data) {
-  await updateDoc(doc(db, PRODUCTS_COL, id), { ...data, updatedAt: serverTimestamp() });
+  await updateDoc(doc(db, PRODUCTS_COL, id), { ...withPriceCents(data), updatedAt: serverTimestamp() });
 }
 
 export async function deleteProduct(id) {
@@ -195,15 +206,23 @@ export async function unsubscribeSelf(id) {
 // per evitare che la coda possa essere usata per inviare email arbitrarie.
 
 export async function enqueueMail(type, to, refCollection, refId, meta = {}) {
-  await addDoc(collection(db, MAIL_OUTBOX_COL), {
-    type,
-    to,
-    refCollection: refCollection || null,
-    refId: refId || null,
-    meta,
-    sent: false,
-    createdAt: serverTimestamp(),
-  });
+  // Non deve MAI far fallire l'operazione che la chiama (creare un ordine,
+  // una richiesta, un'iscrizione): l'email è un effetto collaterale, non
+  // deve bloccare l'azione principale se per qualche motivo fallisce
+  // (es. regole del database non ancora aggiornate).
+  try {
+    await addDoc(collection(db, MAIL_OUTBOX_COL), {
+      type,
+      to,
+      refCollection: refCollection || null,
+      refId: refId || null,
+      meta,
+      sent: false,
+      createdAt: serverTimestamp(),
+    });
+  } catch (err) {
+    console.error('Accodamento email fallito (non bloccante):', type, err);
+  }
 }
 
 /* ---------------- Impostazioni negozio (es. dati bonifico) ---------------- */
@@ -217,6 +236,15 @@ export async function getPaymentSettings() {
 
 export async function savePaymentSettings(data) {
   await setDoc(doc(db, 'settings', 'payment'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+export async function getHeroSettings() {
+  const snap = await getDoc(doc(db, 'settings', 'hero'));
+  return snap.exists() ? snap.data() : null;
+}
+
+export async function saveHeroSettings(data) {
+  await setDoc(doc(db, 'settings', 'hero'), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 }
 
 export async function announceProduct(productId) {

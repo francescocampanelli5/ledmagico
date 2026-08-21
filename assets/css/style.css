@@ -228,6 +228,10 @@ p{ margin: 0 0 1em; color: var(--text-dim); }
 }
 @keyframes float{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-14px); } }
 .hero-illustration{ width:100%; height:auto; }
+.hero-media{ width:100%; }
+.hero-media.has-custom-media{ aspect-ratio: 4/3; border-radius: var(--radius-md); overflow:hidden; }
+.hero-media.has-custom-media img{ width:100%; height:100%; object-fit:cover; display:block; }
+.hero-media.has-custom-media iframe, .hero-media.has-custom-media video{ width:100%; height:100%; display:block; }
 .hero-card-tag{
   display:block; text-align:center; margin-top: 14px;
   font-size:.78rem; color: var(--text-faint); letter-spacing:.04em;

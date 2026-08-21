@@ -1,4 +1,4 @@
-import { configured, unsubscribeSelf } from './firebase-app.js?v=3';
+import { configured, unsubscribeSelf } from './firebase-app.js?v=4';
 
 const params = new URLSearchParams(location.search);
 const id = params.get('id');

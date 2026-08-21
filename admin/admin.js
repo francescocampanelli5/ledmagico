@@ -1,5 +1,5 @@
 /* ============ LedMagico — Admin dashboard logic ============ */
-import { ICONS, CATEGORY_LABEL } from '../assets/js/icons.js';
+import { ICONS, CATEGORY_LABEL } from '../assets/js/icons.js?v=2';
 import { escapeHtml, safeUrl } from '../assets/js/sanitize.js';
 import {
   configured, watchAuth, login, logout,
@@ -8,8 +8,9 @@ import {
   watchQuotes, updateQuoteStatus,
   watchSubscribers,
   getPaymentSettings, savePaymentSettings,
+  getHeroSettings, saveHeroSettings,
   compressImageToDataUri,
-} from '../assets/js/firebase-app.js?v=3';
+} from '../assets/js/firebase-app.js?v=4';
 
 const ORDER_STATUSES = {
   da_confermare: 'Da confermare',
@@ -31,7 +32,7 @@ const DEMO_PRODUCTS = [
   { name: 'Mongolfiera LED', category: 'fantasia', price: 45, shortDesc: 'Sospesa in volo, illuminata dall\'interno come al mattino presto.', fullDesc: 'Una mongolfiera in tessuto rigido e cesto in vimini intrecciato a mano, con un LED interno che replica il bagliore del bruciatore. Da appendere o appoggiare, regala movimento a qualsiasi stanza.', specs: ['Altezza 19 cm · diametro pallone 14 cm', 'Tessuto rigido dipinto a mano', 'Cesto in vimini naturale intrecciato', 'Gancio per sospensione incluso'], iconKey: 'mongolfiera' },
 ].map((p) => ({ ...p, isCustom: true, active: true, image: null }));
 
-const fmtPrice = (cents) => `€${(cents / 100).toFixed(2)}`;
+const fmtPrice = (cents) => `€${((cents || 0) / 100).toFixed(2)}`;
 const fmtDate = (ts) => {
   if (!ts) return '—';
   const d = ts.toDate ? ts.toDate() : new Date(ts);
@@ -125,6 +126,25 @@ function initProducts() {
   document.getElementById('productDeleteBtn').addEventListener('click', onDeleteProduct);
 
   document.getElementById('importDemoBtn').addEventListener('click', onImportDemoProducts);
+  document.getElementById('repairPricesBtn').addEventListener('click', onRepairPrices);
+}
+
+async function onRepairPrices() {
+  const toFix = allProducts.filter((p) => p.priceCents === undefined || p.priceCents === null);
+  if (toFix.length === 0) return;
+  const btn = document.getElementById('repairPricesBtn');
+  btn.disabled = true;
+  let done = 0;
+  for (const p of toFix) {
+    try {
+      await updateProduct(p.id, { price: p.price });
+      done += 1;
+    } catch (err) {
+      console.error('Errore riparando', p.name, err);
+    }
+  }
+  btn.disabled = false;
+  showToast(`${done} prezzi corretti`);
 }
 
 async function onImportDemoProducts() {
@@ -151,6 +171,12 @@ function renderProductsTable(list) {
   const empty = document.getElementById('productsEmpty');
   const importBtn = document.getElementById('importDemoBtn');
   importBtn.hidden = list.length > 0;
+
+  const repairBtn = document.getElementById('repairPricesBtn');
+  const needsRepair = list.filter((p) => p.priceCents === undefined || p.priceCents === null);
+  repairBtn.hidden = needsRepair.length === 0;
+  repairBtn.dataset.count = needsRepair.length;
+
   if (list.length === 0) {
     tbody.innerHTML = '';
     empty.hidden = false;
@@ -160,7 +186,7 @@ function renderProductsTable(list) {
   tbody.innerHTML = list.map((p) => `
     <tr>
       <td><div class="admin-thumb">${p.image ? `<img src="${p.image}" alt="">` : (ICONS[p.iconKey] || ICONS.eiffel)()}</div></td>
-      <td><strong>${escapeHtml(p.name)}</strong></td>
+      <td><strong>${escapeHtml(p.name)}</strong>${p.videoUrl ? ' 🎬' : ''}</td>
       <td>${escapeHtml(CATEGORY_LABEL[p.category] || p.category)}</td>
       <td>${fmtPrice(p.priceCents)}</td>
       <td><span class="status-pill ${p.active ? 'active' : 'inactive'}">${p.active ? 'Visibile' : 'Nascosto'}</span></td>
@@ -206,11 +232,12 @@ function openProductForm(id) {
     document.getElementById('productFormTitle').textContent = 'Modifica prodotto';
     document.getElementById('pf-name').value = p.name || '';
     document.getElementById('pf-category').value = p.category || 'monumenti';
-    document.getElementById('pf-price').value = (p.priceCents / 100).toFixed(2);
+    document.getElementById('pf-price').value = ((p.priceCents || 0) / 100).toFixed(2);
     document.getElementById('pf-icon').value = p.iconKey || 'eiffel';
     document.getElementById('pf-shortdesc').value = p.shortDesc || '';
     document.getElementById('pf-fulldesc').value = p.fullDesc || '';
     document.getElementById('pf-specs').value = (p.specs || []).join('\n');
+    document.getElementById('pf-video').value = p.videoUrl || '';
     document.getElementById('pf-custom').checked = !!p.isCustom;
     document.getElementById('pf-active').checked = !!p.active;
     if (p.image) {
@@ -250,6 +277,7 @@ async function onSaveProduct(e) {
     isCustom: document.getElementById('pf-custom').checked,
     active: document.getElementById('pf-active').checked,
     image: photoPreview.dataset.value || null,
+    videoUrl: document.getElementById('pf-video').value.trim() || null,
   };
 
   if (!data.name || !data.category || !data.price || data.price <= 0) {
@@ -467,6 +495,79 @@ function initSettings() {
       note.textContent = 'Errore durante il salvataggio.';
     } finally {
       btn.disabled = false;
+    }
+  });
+
+  initHeroSettings();
+}
+
+function initHeroSettings() {
+  const preview = document.getElementById('heroPhotoPreview');
+
+  getHeroSettings().then((data) => {
+    if (!data) return;
+    if (data.type === 'video' && data.videoUrl) {
+      document.getElementById('hero-video').value = data.videoUrl;
+    } else if (data.type === 'image' && data.imageData) {
+      preview.innerHTML = `<img src="${data.imageData}" alt="">`;
+      preview.dataset.value = data.imageData;
+    }
+    document.getElementById('hero-caption').value = data.caption || '';
+  }).catch((err) => console.error('Errore vetrina', err));
+
+  document.getElementById('hero-photo').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    preview.innerHTML = '<span style="font-size:.7rem;color:var(--text-faint);">Elaborazione...</span>';
+    try {
+      const dataUri = await compressImageToDataUri(file, 1200, 0.78);
+      preview.innerHTML = `<img src="${dataUri}" alt="Anteprima">`;
+      preview.dataset.value = dataUri;
+    } catch (err) {
+      preview.innerHTML = '<span style="font-size:.7rem;color:#ff8f8f;">Errore immagine</span>';
+    }
+  });
+
+  document.getElementById('heroForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const note = document.getElementById('heroNote');
+    const btn = document.getElementById('heroSaveBtn');
+    const videoUrl = document.getElementById('hero-video').value.trim();
+    btn.disabled = true;
+    try {
+      let payload;
+      if (videoUrl) {
+        payload = { type: 'video', videoUrl, imageData: null, caption: document.getElementById('hero-caption').value.trim() };
+      } else if (preview.dataset.value) {
+        payload = { type: 'image', videoUrl: null, imageData: preview.dataset.value, caption: document.getElementById('hero-caption').value.trim() };
+      } else {
+        payload = { type: 'default', videoUrl: null, imageData: null, caption: document.getElementById('hero-caption').value.trim() };
+      }
+      await saveHeroSettings(payload);
+      note.classList.remove('is-error');
+      note.textContent = 'Vetrina salvata.';
+      showToast('Vetrina salvata');
+    } catch (err) {
+      console.error(err);
+      note.classList.add('is-error');
+      note.textContent = 'Errore durante il salvataggio.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('heroResetBtn').addEventListener('click', async () => {
+    if (!confirm('Ripristinare l\'illustrazione predefinita della home?')) return;
+    preview.innerHTML = '';
+    preview.dataset.value = '';
+    document.getElementById('hero-video').value = '';
+    document.getElementById('hero-caption').value = '';
+    try {
+      await saveHeroSettings({ type: 'default', videoUrl: null, imageData: null, caption: '' });
+      showToast('Illustrazione predefinita ripristinata');
+    } catch (err) {
+      console.error(err);
+      alert('Errore durante il ripristino.');
     }
   });
 }
