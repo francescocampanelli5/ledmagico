@@ -123,6 +123,12 @@ p{ margin: 0 0 1em; color: var(--text-dim); }
   padding: 18px 0;
   transition: background .3s ease, padding .3s ease, box-shadow .3s ease, border-color .3s ease;
   border-bottom: 1px solid transparent;
+  /* Forza un livello di composizione dedicato: su iOS Safari, un elemento
+     fixed con backdrop-filter può altrimenti "staccarsi" o sfarfallare
+     durante lo scroll — bug noto di quella combinazione. */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
 }
 .site-header.is-scrolled{
   padding: 10px 0;
